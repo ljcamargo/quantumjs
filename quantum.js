@@ -339,56 +339,85 @@ class QBit {
   t() { return this.gate("t"); }
   t_() { return this.gate("tdg"); }
   id() { return this.gate("id"); }
+  reset() { return this.gate("reset"); }
   
   u(values) {
     return this.gate("u" + values.length + "(" + values.join(",") + ")");
   }
   
-  cx(target) {
-    return this.cnot(target);
+  cnot(target) { return this.cx(target); }
+  cx(target) { return this.controlled("cx", target); }
+  cy(target) { return this.controlled("cy", target); }
+  cz(target) { return this.controlled("cz", target); }
+  ch(target) { 
+    target = this.getTarget(target);
+    if (target) {
+      this.s();
+      target.h().s_();
+      this.cx(target);
+      target.h().t();
+      this.cx(target);
+      target.t().h().s().x();
+    }
+    return this;
+  }
+  toffoli(b,c) { return this.ccx(b,c); }
+  ccx(b, c) {
+    var a = this;
+    b = a.getTarget(b);
+    if (b) {
+     c = b.getTarget(c);
+      if (c) {  
+        c.h();
+        b.cx(c); c.t_();
+        a.cx(b); c.t();
+        b.cx(c); c.t_();
+        a.cx(c); b.t(); c.t().h();
+        a.cx(b).t(); b.t_();
+        a.cx(b);
+      }
+    }
+    return a;
   }
   
-  cnot(target) {
-    return this.controlled("cx", target);
+  getTarget(target) {
+    if (!(typeof target === 'object' && target instanceof QBit)) {
+      var target = this.Q.bit(target, this.reg);
+    }
+    if (this.validate(target)) {
+      return target; 
+    }
   }
   
   controlled(gate, target) {
-    if (typeof target === 'object' || target instanceof QBit) {
-      if (this.validate(target)) {
-        this.operation(gate+" _q_,_qt_;".replaceAll("_qt_", target.name));
-      }
-    } else {
-      if (this.validate(target)) {
-        var target = this.Q.bit(target, this.reg);
-        this.operation(gate+" _q_,_qt_;".replaceAll("_qt_", target.name)); 
-      }
+    target = this.getTarget(target);
+    if (target) {
+      this.operation(gate+" _q_,_qt_;".replaceAll("_qt_", target.name));
     }
     return this;
   }
   
-  rcnot(target) {
-    if (this.validate(target) && this.Q.exists(target)) {
+  rcnot(target) { return this.rcx(target); }
+  rcx(target) {
+    target = this.getTarget(target);
+    if (target) {
       if (target > this.index) {
-        this.h();
-        this.Q.bit(target).h();
+        this.h(); target.h();
       } else {
-        this.Q.bit(target).h();
-        this.h();
+        target.h(); this.h();
       }
-      this.cnot(target);
+      this.cx(target);
       if (target > this.index) {
-        this.h();
-        this.Q.bit(target).h();
+        this.h(); target.h();
       } else {
-        this.Q.bit(target).h();
-        this.h();
+        target.h(); this.h();
       }
     }
     return this;
   }
   
   swapWith(target) {
-    return this.cnot(target).rcnot(target).cnot(target);
+    return this.cx(target).rcx(target).cx(target);
   }
   
   measure() {
@@ -406,7 +435,8 @@ class QBit {
       }
       if (cbit) {
         this.operation("measure _q_ -> _c_;".replaceAll("_c_", cbit.name));
-        this.Q.valMeasureSize(this, cbit);
+        if (index == undefined || index < 0 || index instanceof String) 
+          this.Q.valMeasureSize(this, cbit);
       }      
     }
     return this;
