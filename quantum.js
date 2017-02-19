@@ -3,6 +3,21 @@ String.prototype.replaceAll = function(search, replacement) {
     return target.replace(new RegExp(search, 'g'), replacement);
 };
 
+var Q$ = {
+  "unequal":"Measurement classical register (_creg_) has not equal size to quantum register (_qreg_)",
+  "q_undefined":"Qubit _reg_(_index_) not defined in current topology",
+  "c_undefined":"Classical bit _reg_(_index_) not defined in current topology",
+  "notconnected":"Control _reg_(_index_) cannot operate on _reg2_(_index2_) on this topology.",
+  "orphan":"Qbit(_index_) doesn't have parent processor"
+};
+
+var π = {
+  div : function (num) {
+    num = num || 1;
+    return 'pi/' + num;
+  }
+};
+
 class QProcessor {
   
   constructor(topology) {
@@ -45,13 +60,11 @@ class QProcessor {
   }
   
   valMeasureSize(qbit, cbit) {
-    var errmsj = "Measurement classical register (_creg_) has not equal size to quantum register (_qreg_)"
-      .replaceAll('_creg_', cbit.reg)
-      .replaceAll('_qreg_', qbit.reg);
+    var err = Q$['unequal'].replaceAll('_creg_', cbit.reg).replaceAll('_qreg_', qbit.reg);
     if (this.topology != undefined) {
       if (this.qreg[qbit.reg].length != this.creg[cbit.reg].length) {
-        console.log(errmsj);
-        this.error(errmsj);
+        console.log(err);
+        this.error(err);
       } else {
         return true;
       }
@@ -94,6 +107,7 @@ class QProcessor {
     reg = reg || "q";
         
     //IDEAL ARCHITECTURE
+    var err = Q$['q_undefined'].replaceAll("_reg_",reg).replaceAll("_index_",index);
     if (this.topology == undefined) {
       if (this.qreg[reg] == undefined) {
         this.qreg[reg] = [];
@@ -105,18 +119,14 @@ class QProcessor {
     } else if (this.qreg[reg] != undefined) { //CONSTRAINED TOPOLOGY
       if (this.qreg[reg][index] != undefined) {
         return this.qreg[reg][index];
+      } else if (index == undefined) {
+        return new QBit(reg, index, this);
       } else {
-        this.error("QBit _reg_(_index_) not defined in current topology" 
-                  .replaceAll("_reg_",reg)
-                  .replaceAll("_index_",index));
-        //return false;
+        this.error(err);
         return new QBit(reg, index, this);
       }
     } else {
-      this.error("QBit _reg_(_index_) not defined in current topology" 
-                 .replaceAll("_reg_",reg)
-                 .replaceAll("_index_",index));
-      //return false;
+      this.error(err);
       return new QBit(reg, index, this);
     }
   }
@@ -130,6 +140,7 @@ class QProcessor {
     index = (index == undefined || index == null) ? -1 : index;
     reg = reg || 'c';
     //IDEAL ARCHITECTURE
+    var err = Q$['c_undefined'].replaceAll("_reg_",reg).replaceAll("_index_",index);
     if (this.topology == undefined) {
       if (this.creg[reg] == undefined) {
         this.creg[reg] = [0];
@@ -144,14 +155,11 @@ class QProcessor {
       if (this.topology.creg[reg] >= index) {
         return new CBit(reg, index, this.creg[reg][index]);
       } else {
-        this.error("CBit _reg_(_index_) not defined in current topology".replaceAll("_reg_",reg)
-            .replaceAll("_index_",index));
-        //return false;
+        this.error(err);
         return new CBit(reg, index, 0);
       }
     } else {
-      this.error("CBit _reg_ not defined in current topology".replaceAll("_reg_",reg));
-      //return false;
+      this.error(err);
       return new CBit(reg, index, 0);
     }
   }
@@ -227,6 +235,12 @@ class QProcessor {
       arr.push(_bit.name);
     }
     this.add("barrier " + (arr.join(',') || reg) + ";");
+    return this;
+  }
+  
+  brk() {
+    this.add('');
+    return this;
   }
   
   pre(test) {
@@ -256,6 +270,10 @@ class QBit {
     this.name = this.reg + (this.index < 0 ? "":("["+this.index+"]"));
   }
   
+  bit(bit) {
+    if (this.Q) this.Q.bit(bit);
+  }
+  
   error(message) {
     if (this.Q != undefined) {
       this.Q.error(message);
@@ -283,23 +301,24 @@ class QBit {
     this.condition = undefined; 
   }
   
-  validate(target) {
+  validate(target, silent) {
     if (this.targets == 0 || this.targets == undefined || this.targets == null) { return true; }
-    if (this.targets.indexOf(target) != -1) {
+    var targetIndex = target.index || target;
+    if (this.targets.indexOf(targetIndex) != -1) {
       if (this.Q != undefined) {
-        if (this.Q.exists(target)) {
+        if (this.Q.exists(targetIndex)) {
           return true;
         } else {
-          this.error("Qbit(_index_) not defined in current topology".replaceAll("_index_",target));
+          this.error(Q$['q_undefined'].replaceAll("_reg_",target.reg).replaceAll("_index_",target.index));
         }
       } else {
-        this.error("Qbit(_index_) doesn't have parent processor".replaceAll("_index_",this.index));
+        this.error(Q$['orphan'].replaceAll("_index_",this.index));
       }
     } else {
-      this.error(
-        "Control Qbit(_cindex_) is not connected with this target Qbit(_tindex_) on this topology"
-        .replaceAll("_cindex_",this.index)
-        .replaceAll("_tindex_",target)
+      if (silent) console.log("me("+this.index+") targets: "+this.targets+" target("+target.index+").targets: "+target.targets);
+      if (!silent) this.error(
+        Q$['notconnected'].replaceAll("_index_",this.index).replaceAll('_reg_',this.reg)
+        .replaceAll("_index2_",target.index).replaceAll("_reg2_",target.reg)
       );
     }
     return false;
@@ -330,6 +349,46 @@ class QBit {
     }
   }
   
+  isQBit(obj) {
+    return typeof obj === 'object' && obj instanceof QBit;
+  }
+  
+  getTarget(target) {
+    if (!this.isQBit(target)) target = this.Q.bit(target, this.reg);
+    if (this.validate(target)) return target; 
+  }
+  
+  getTargetOrReverse(target) {
+    if (this.validate(target, 'silent')) {
+      return 2; 
+    } else if (target.validate(this, 'silent')) {
+      return 1;
+    } else {
+      return 0;
+    }
+  }
+  
+  controlled(gate, target) {
+    target = this.getTarget(target);
+    if (target) 
+      this.operation(gate+" _q_,_qt_;".replaceAll("_qt_", target.name));
+    return this;
+  }
+  
+  acx(target) {
+    if (!this.isQBit(target)) target = this.Q.bit(target, this.reg);
+    var xcheck = this.getTargetOrReverse(target);
+    if (xcheck == 2) {
+      this.cx(target);
+    } else if (xcheck == 1) {
+      this.Q.comment("AUTO REVERSE NOT");
+      target.rcx(this);
+    } else {
+      console.log(this.reg+this.index+" not target nor reverse of  "+target.reg+target.index);
+      this.cx(target);
+    }
+  }
+  
   h() { return this.gate("h"); }
   x() { return this.gate("x"); }
   y() { return this.gate("y"); }
@@ -340,11 +399,7 @@ class QBit {
   t_() { return this.gate("tdg"); }
   id() { return this.gate("id"); }
   reset() { return this.gate("reset"); }
-  
-  u(values) {
-    return this.gate("u" + values.length + "(" + values.join(",") + ")");
-  }
-  
+  u(values) { return this.gate("u" + values.length + "(" + values.join(",") + ")"); }
   cnot(target) { return this.cx(target); }
   cx(target) { return this.controlled("cx", target); }
   cy(target) { return this.controlled("cy", target); }
@@ -361,6 +416,7 @@ class QBit {
     }
     return this;
   }
+  
   toffoli(b,c) { return this.ccx(b,c); }
   ccx(b, c) {
     var a = this;
@@ -380,24 +436,28 @@ class QBit {
     return a;
   }
   
-  getTarget(target) {
-    if (!(typeof target === 'object' && target instanceof QBit)) {
-      var target = this.Q.bit(target, this.reg);
-    }
-    if (this.validate(target)) {
-      return target; 
+  cu1(param, target) {
+    target = this.getTarget(target);
+    if (target) {
+      var gate = 'cu1(' + param + ')';
+      this.operation(gate+" _q_,_qt_;".replaceAll("_qt_", target.name));
     }
   }
   
-  controlled(gate, target) {
-    target = this.getTarget(target);
+  cu1$(param, target) {
+    if (!this.isQBit(target)) target = this.Q.bit(target, this.reg);
     if (target) {
-      this.operation(gate+" _q_,_qt_;".replaceAll("_qt_", target.name));
+      this.u([param+'/2']);
+      this.acx(target);
+      target.u(['-'+param+'/2']);
+      this.acx(target);
+      target.u([param+'/2']);
     }
     return this;
   }
   
   rcnot(target) { return this.rcx(target); }
+  
   rcx(target) {
     target = this.getTarget(target);
     if (target) {
@@ -453,6 +513,11 @@ class QBit {
   measureX(index, group) { return this.toX().measureTo(index, group); }
   measureY(index, group) { return this.toY().measureTo(index, group); }
   measureZ(index, group) { return this.toZ().measureTo(index, group); }
+  
+  brk() {
+    if (this.Q) this.Q.brk();
+    return this;
+  }
   
   repeat(times, op, param) {
     for (var i = 0; i < times; i++) {
