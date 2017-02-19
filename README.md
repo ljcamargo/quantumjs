@@ -52,7 +52,7 @@ When a topology is specified, qubits and q-registers must be within the predefin
 
 After selecting a qubit, you can apply a quantum gate (or transformation);
 
-#### Clifford Gates
+#### Gates
 
 **Pauli X (bit-flip, not)**
 ```javascript
@@ -70,10 +70,166 @@ Q.bit(0).z();
 ```javascript
 Q.bit(0).id();
 ```
-**Hadamard Gate (Identity)**
+**Hadamard Gate**
 ```javascript
 Q.bit(0).h();
 ```
+**Square Root Gate (S) and conjugate (S†, SDG)**
+```javascript
+Q.bit(0).s(); //S
+Q.bit(0).s_(); //S conjugate
+```
+
+**Non-Clifford T and conjugate (T†, TDG)**
+```javascript
+Q.bit(0).t(); //T
+Q.bit(0).t_(); //T conjugate
+```
+
+#### Controlled Gates
+**CNOT or CX**
+```javascript
+Q.bit(0).cnot(1); // apply x gate to q(1) when q(0) is |1> 
+Q.bit(0).cx(1); // another name for the same function
+```
+**CY, CZ**
+```javascript
+Q.bit(1).cy(2); // apply y gate to q(2) when q(1) is |1> 
+Q.bit(3).cz(2); // apply z gate to q(2) when q(3) is |1> 
+```
+
+Controlled gates are limited on real devices. When using real or non-ideal topology a compile error is thrown if the interaction is not allowed.
 
 
-(under construction)
+### Measuring
+
+Measuring qubits to specific classical registers.
+```javascript
+Q.bit(2).measureTo(2); // measure q[2] to c[2], the default register is ‘c’
+Q.bit(2).measure(); // measure q[2] to c[2], index of classical bit will be inferred from qubit
+Q.bit(2).measureTo(0,’c2’); // measure q[2] to c2[0]
+```
+
+Measuring the entire array. Qubits and Classical array must be of the same size or error is thrown
+```javascript
+Q.bit().measure(); // measure all qubits from q to c
+// this is equal to..
+Q.bit(0).measureTo(0);
+Q.bit(1).measureTo(1);
+Q.bit(2).measureTo(2);
+// and so on...
+```
+
+Rotate to V, W, X, Y or Z and measure (to simplify bloch tomography)
+```javascript
+Q.bit(2).measureX(2); 
+// equal to: Q.bit(2).h().measureTo(2);
+
+Q.bit(2).measureY(2); 
+// equal to: Q.bit(2).s_().h().measureTo(2);
+
+Q.bit(2).measureW(2); 
+// equal to: Q.bit(2).s().h().t().h().measureTo(2);
+```
+
+### Compile
+
+Get the QASM2.0 code for on IBM Quantum Experience on a variable.
+```javascript
+var qasm = Q.compile(); 
+```
+
+You may also use a callback pattern for compiling
+```javascript
+Q.compile(function(str) {
+  $('div').text(str); // jquery to write the qasm code to a div
+  hljs.initHighlightingOnLoad(); //use hljs to highlight the code
+});
+```
+
+## Examples
+
+### Quantum Fourier Transform (n-bits)
+
+```javascript
+function qft(bits, values) {
+  if (bits && bits instanceof Object) {
+    values = bits; bits = values.length;
+  }
+  var Q = new QProcessor();
+  Q.comment(bits + "-bit Quantum Fourier Transform");
+  if (values) Q.init(values);
+  Q.barrier().brk();
+  for (var i = 0; i < bits; i++) {
+    for (var j = 0; j < i; j++) {
+      Q.bit(i).cu1(π.div(Math.pow(2, i-j)), j);
+    }
+    Q.bit(i).h().brk();
+  }
+  Q.bit().measure();
+  return Q.compile();
+};
+
+var qasm = qft([1,0,1,0,1,0,1,0]);
+console.log(qasm);
+```
+
+Will output :
+```php
+include "qelib1.inc";
+qreg q[8];
+creg c[8];
+
+// 8-bit Quantum Fourier Transform
+x q[0];
+x q[2];
+x q[4];
+x q[6];
+barrier q;
+
+h q[0];
+
+cu1(pi/2) q[1],q[0];
+h q[1];
+
+cu1(pi/4) q[2],q[0];
+cu1(pi/2) q[2],q[1];
+h q[2];
+
+cu1(pi/8) q[3],q[0];
+cu1(pi/4) q[3],q[1];
+cu1(pi/2) q[3],q[2];
+h q[3];
+
+cu1(pi/16) q[4],q[0];
+cu1(pi/8) q[4],q[1];
+cu1(pi/4) q[4],q[2];
+cu1(pi/2) q[4],q[3];
+h q[4];
+
+cu1(pi/32) q[5],q[0];
+cu1(pi/16) q[5],q[1];
+cu1(pi/8) q[5],q[2];
+cu1(pi/4) q[5],q[3];
+cu1(pi/2) q[5],q[4];
+h q[5];
+
+cu1(pi/64) q[6],q[0];
+cu1(pi/32) q[6],q[1];
+cu1(pi/16) q[6],q[2];
+cu1(pi/8) q[6],q[3];
+cu1(pi/4) q[6],q[4];
+cu1(pi/2) q[6],q[5];
+h q[6];
+
+cu1(pi/128) q[7],q[0];
+cu1(pi/64) q[7],q[1];
+cu1(pi/32) q[7],q[2];
+cu1(pi/16) q[7],q[3];
+cu1(pi/8) q[7],q[4];
+cu1(pi/4) q[7],q[5];
+cu1(pi/2) q[7],q[6];
+h q[7];
+
+measure q -> c;
+```
