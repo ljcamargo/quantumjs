@@ -86,6 +86,17 @@ Q.bit(0).t(); //T
 Q.bit(0).t_(); //T conjugate
 ```
 
+**Rotation Gates (U)**
+You must provide rotation angles in an array (lambda, phi, theta)
+```javascript
+// lambda
+Q.bit(0).u( [π.div(2)] );			// u1(pi/2) q[0]; 
+// lambda, phi
+Q.bit(0).u( [π.div(2), π.div(4)] );	// u2(pi/2, pi/4) q[0]; 
+// lambda, phi, theta
+Q.bit(0).u( [0.3, 0.2, 0.1] );		// u3(0.3, 0.2, 0.1) q[0]; 
+```
+
 #### Controlled Gates
 **CNOT or CX**
 ```javascript
@@ -233,3 +244,4 @@ h q[7];
 
 measure q -> c;
 ```
+
