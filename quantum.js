@@ -423,10 +423,10 @@ class QBit {
     b = a.getTarget(b);
     if (b) {
      c = b.getTarget(c);
-      if (c) {  
+      if (c) {          
         c.h();
         b.cx(c); c.t_();
-        a.cx(b); c.t();
+        a.cx(c); c.t();
         b.cx(c); c.t_();
         a.cx(c); b.t(); c.t().h();
         a.cx(b).t(); b.t_();
