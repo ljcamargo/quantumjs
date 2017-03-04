@@ -1,8 +1,7 @@
-function iqft(bits, values) {
+function iqft(Q, bits, values) {
   if (bits && bits instanceof Object) {
     values = bits; bits = values.length;
   }
-  var Q = new QProcessor();
   Q.comment(bits + "-bit Inverse Quantum Fourier Transform");
   if (values) Q.init(values);
   Q.barrier().brk();
@@ -13,12 +12,16 @@ function iqft(bits, values) {
     Q.bit(i).h().brk();
     Q.bit(i).measureTo(0,'c'+i);
   }
-  return Q.compile();
+  return Q;
 };
 
-//USAGE EXAMPLE
-//INVERSE QUANTUM FOURIER TRANSFORM FROM A UNIFORM SUPERPOSITION OF 8-qubits
-var qasm = iqft(['+','+','+','+','+','+','+','+']);
+//IQFT FROM A UNIFORM SUPERPOSITION OF 8-qubits
+var values = ['+','+','+','+','+','+','+','+'];
+var Q = new QProcessor();
+Q = iqft(Q, values);
+var qasm = Q.compile();
+console.log(qasm);
+
 
 
 //COMPILED QASM2.0

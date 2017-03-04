@@ -1,8 +1,7 @@
-function qft(bits, values) {
+function qft(Q, bits, values) {
   if (bits && bits instanceof Object) {
     values = bits; bits = values.length;
   }
-  var Q = new QProcessor();
   Q.comment(bits + "-bit Quantum Fourier Transform");
   if (values) Q.init(values);
   Q.barrier().brk();
@@ -13,12 +12,17 @@ function qft(bits, values) {
     Q.bit(i).h().brk();
   }
   Q.bit().measure();
-  return Q.compile();
+  return Q;
 };
 
-//USAGE EXAMPLE
 //QUANTUM FOURIER TRANSFORM FROM A 8-qubit ARRAY;
-var qasm = qft([1,0,1,0,1,0,1,0]); 
+var values = [1,0,1,0,1,0,1,0];
+var Q = new QProcessor();
+Q = qft(Q, values);
+var qasm = Q.compile();
+console.log(qasm); 
+
+
 
 //COMPILED QASM2.0
 /*

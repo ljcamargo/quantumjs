@@ -59,7 +59,7 @@ class QProcessor {
     }
   }
   
-  valMeasureSize(qbit, cbit) {
+  assertSize(qbit, cbit, top) {
     var err = Q$['unequal'].replaceAll('_creg_', cbit.reg).replaceAll('_qreg_', qbit.reg);
     if (this.topology != undefined) {
       if (this.qreg[qbit.reg].length != this.creg[cbit.reg].length) {
@@ -69,7 +69,8 @@ class QProcessor {
         return true;
       }
     } else {
-      var max = Math.max(this.qreg[qbit.reg].length, this.creg[cbit.reg].length);
+      top = top || this.qreg[qbit.reg].length-1;
+      var max = Math.max(top, this.creg[cbit.reg].length) +1;
       this.setQ(qbit.reg, max);
       this.setC(cbit.reg, max);
     }
@@ -240,6 +241,13 @@ class QProcessor {
   
   brk() {
     this.add('');
+    return this;
+  }
+  
+  mask(mask, func) {
+    for(var i = 0; i < mask.length; i++) {
+      if (mask[i] == 1) func(Q.bit(i));
+    }
     return this;
   }
   
@@ -495,9 +503,12 @@ class QBit {
       }
       if (cbit) {
         this.operation("measure _q_ -> _c_;".replaceAll("_c_", cbit.name));
-        if (index == undefined || index < 0 || index instanceof String) 
-          this.Q.valMeasureSize(this, cbit);
-      }      
+        if (index == undefined || index < 0 || index instanceof String) {
+          this.Q.assertSize(this, cbit);
+        } else {
+          this.Q.assertSize(this, cbit, index);
+        }
+      }    
     }
     return this;
   }

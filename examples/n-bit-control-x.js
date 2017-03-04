@@ -8,34 +8,35 @@
 */
 
 
-function ncx(Q, values) {
-  var span = [];
-  span.push(values[0]); span.push(values[1]); span.push('');
-  for (var i = 2; i < values.length; i++) {
-    span.push(values[i]); span.push('');
-  }
-  Q.comment("Initial State");
-  Q.init(span);
-  Q.barrier().brk();
-  Q.comment("n-bit control circuit");
-  for (var i = 0; i <= values.length; i+=2) {
-    Q.comment("toffoli "+i+" "+(i+1)+" "+(i+2));
+function ncx(Q, n) {
+  for (var i = 0; i <= n; i+=2) {
     Q.bit(i).ccx(i+1, i+2);
   }
-  Q.brk();
-  Q.comment("backward!");
-  Q.brk();
-  var l = (values.length % 2 == 0) ? 0 : 1;
-  for (var i = (values.length-l); i >= 2; i-=2) {
-    Q.comment("toffoli "+(i-2)+" "+(i-1)+" "+(i));
+  var l = (n % 2 == 0) ? 0 : 1;
+  for (var i = (n-l); i >= 2; i-=2) {
     Q.bit(i-2).ccx(i-1, i);
   }
-  Q.brk();
   return Q;
 }
 
+function getNCXSpannedArray(arr) {
+  var span = [];
+  span.push(arr[0]); span.push(arr[1]); span.push('');
+  for (var i = 2; i < arr.length; i++) {
+    span.push(arr[i]); span.push('');
+  }
+  return span;
+}
+
+var values = [1,1,1,1];
 var Q = new QProcessor();
-Q = ncx(Q, [1,1,1,1]);
+var span = getNCXSpannedArray(values);
+
+Q.comment("Set Initial State");
+Q.init(span);
+Q.barrier().brk();
+Q = ncx(Q, values.length);
 Q.bit().measure();
-var result = Q.compile();
-console.log(result);
+
+var qasm = Q.compile();
+console.log(qasm);
