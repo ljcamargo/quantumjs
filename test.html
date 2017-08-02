@@ -1,0 +1,58 @@
+<html>
+<head>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+  <script src="quantum.js"></script>
+</head>
+<style>
+  body {
+    margin: 0;
+    padding: 1em;
+    background: #000;
+  }
+
+  pre {
+    margin:0;
+    heigth:100%;
+  }
+
+  code {
+    margin:0;
+    height:100%;
+    font-size: 14pt;
+    color:white;
+  }
+</style>
+<body><pre><code class="php"></code></pre></body>
+<script>
+function qft(bits, values) {
+  if (bits && bits instanceof Object) {
+    values = bits; bits = values.length;
+  }
+  Q.comment(bits + "-bit Quantum Fourier Transform");
+  if (values) Q.init(values);
+  Q.barrier().brk();
+  for (var i = 0; i < bits; i++) {
+    for (var j = 0; j < i; j++) {
+      Q.bit(i).cu1(Q.π.div(Math.pow(2, i-j)), j);
+    }
+    Q.bit(i).h().brk();
+  }
+};
+
+//USAGE EXAMPLE
+//QUANTUM FOURIER TRANSFORM FROM A 8-qubit ARRAY;
+var values = [1,0,1,0,1,0,1,0];
+var Q = new QuantumJS();
+Q.addFunction('qft', qft);
+Q.fnc.qft(values);
+Q.bit().h();
+Q.bit().measure();
+
+Q.compile(function(compiled) {
+  $('code').text(compiled);
+  console.log(compiled);
+});
+
+
+</script>
+</html>

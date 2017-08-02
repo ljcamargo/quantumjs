@@ -1,70 +1,142 @@
-String.prototype.replaceAll = function(search, replacement) {
-    var target = this;
-    return target.replace(new RegExp(search, 'g'), replacement);
-};
-
-var Q$ = {
-  "unequal":"Measurement classical register (_creg_) has not equal size to quantum register (_qreg_)",
-  "q_undefined":"Qubit _reg_(_index_) not defined in current topology",
-  "c_undefined":"Classical bit _reg_(_index_) not defined in current topology",
-  "notconnected":"Control _reg_(_index_) cannot operate on _reg2_(_index2_) on this topology.",
-  "orphan":"Qbit(_index_) doesn't have parent processor"
-};
-
-var π = {
-  div : function (num) {
-    num = num || 1;
-    return 'pi/' + num;
-  }
-};
-
-class QProcessor {
+class QuantumJS {
   
   constructor(topology) {
+    String.prototype.format = function () {
+      var i = 0, args = arguments;
+      return this.replace(/{}/g, function () {
+        return typeof args[i] != 'undefined' ? args[i++] : '';
+      });
+    };
+
     this.operations = [];
     this.inits = [];
     this.creg = {};
     this.qreg = {};
-    if (topology != undefined) {
-      this.topology = topology;
-      for (var reg in this.topology.creg) {
-        this.setC(reg, this.topology.creg[reg]);
+    this.fnc = {};
+    
+    this.π = {
+      div: (num) => {
+        num = num || 1;
+        return 'pi/' + num;
       }
-      for (var reg in this.topology.qreg) {
-        this.setQ(reg, this.topology.qreg[reg].length, this.topology.qreg[reg])
+    };
+
+    this.backends = {
+      'ibmqx2': {
+        'name': 'ibmqx2',
+        'registries': [
+          {
+            'kind':'quantum',
+            'name':'q',
+            'length': 5,
+            'coupling_map': [[0,1],[0,2],[1,2],[3,2],[3,4],[4,2]],
+            'topology': [[1,2],[2],[],[2,4],[2]]
+          },
+          {
+            'kind':'classical',
+            'name':'c',
+            'length': 5
+          }
+        ]
+      },
+      'ibmqx3': {
+        'name': 'ibmqx3',
+        'registries': [
+          {
+            'kind':'quantum',
+            'name':'q',
+            'length': 16,
+            'coupling_map': [[0,1],[1,2],[2,3],[3,14],[4,3],[4,5],[6,7],[6,11],[7,10],[8,7],[9,8],[9,10],[11,10],[12,5],[12,11],[12,13],[13,4],[13,14],[15,0],[15,14]],
+            'topology': [[1],[2],[3],[14],[3,5],[],[7,11],[10],[7],[8,10],[],[10],[5,11,13],[4,14],[],[0,14]]
+          },
+          {
+            'kind':'classical',
+            'name':'c',
+            'length': 16
+          }
+        ]
       }
+    };
+
+    this.$ = {
+      "nobackend":"Backend {} not defined",
+      "unequal":"Measurement classical register {} has not equal size to quantum register {}",
+      "qerr":"Qubit {}({}) not defined in current topology",
+      "cerr":"Classical bit {}({}) not defined in current topology",
+      "notconnected":"Control {}({}) cannot operate on {}({}) on this topology.",
+      "orphan":"Qbit({}) not attached to topology"
+    };
+
+    this.errors = {
+      nobackend: (name) => this.error(this.$["nobackend"].format(name)),
+      biterr: (str, reg, i) => this.error(this.$[str].format(reg, i)),
+      qbit: (reg, i) => this.errors.biterr("qerr", reg, i),
+      cbit: (reg, i) => this.errors.biterr("cerr", reg, i),
+      unequal: (c,b) => this.error(this.$['unequal'].format(c,b)),
+      orphan: (i) => this.error(this.$['orphan'].format(i)),
+      notconn: (reg, i, reg2, i2) => this.error(this.$['notconnected'].format(reg, i, reg2, i2))
     }
+
+    if (typeof topology === 'string' || topology instanceof String) {
+      if (this.backends[topology] != undefined) {
+        this.topology = this.backends[topology];
+      } else {
+        this.errors.nobackend(topology);
+        return;
+      }
+    } else if (typeof topology !== 'undefined') {
+      this.topology = topology;
+    }
+    this.constrained = typeof topology !== 'undefined';
+    if (this.constrained) {
+      this.topology.registries.forEach(reg => {
+        if (reg.kind == 'quantum') this.setQ(reg.name, reg.length, reg.topology);
+        if (reg.kind == 'classical') this.setC(reg.name, reg.length);
+      });
+    }
+  }
+
+  addFunction(name, fnc) {
+    this.fnc[name] = (() => {
+      return (...args) => {
+          fnc.apply(this, args);
+          return Q;
+      };
+    })();
+  }
+
+  couplingToConn(map) {
+    var arr = [];
+    map.forEach(val => {
+      if (typeof arr[val[0]] === 'undefined') arr[val[0]] = [];
+      arr[val[0]].push(val[1]);
+    });
+    for(var i = 0; i < arr.length; i++) arr[i] = arr[i] || [];
+    console.log(JSON.stringify(arr));
+    return arr;
   }
   
   setFallback(fallback) {
     this.fallback = fallback;
   }
   
-  setQ(reg, size, topologies) {
-    reg = reg || 'c';
-    size = size || 0;
-    this.qreg[reg] = this.qreg[reg] || [];
-    for (var i = this.qreg[reg].length; i < size; i++) {
-        var topology = topologies ? topologies[i] : undefined;
-        this.qreg[reg][i] = new QBit(reg, i, this, topology);
+  setQ(reg = 'c', size = 0, topologies) {
+    this.qreg[reg] = this.qreg[reg] || new Array(size);
+    var registry = this.qreg[reg];
+    for (var i = 0; i < size; i++) {
+      registry[i] = new QBit(reg, i, this, topologies ? topologies[i] : undefined);
     }
   }
   
-  setC(reg, size) {
-    reg = reg || 'c';
-    size = size || 0;
-    this.creg[reg] = this.creg[reg] || [];
-    for (var i = this.creg[reg].length; i < size; i++) {
-        this.creg[reg][i] = 0;
-    }
+  setC(reg = 'c', size = 0) {
+    this.creg[reg] = this.creg[reg] || new Array(size);
+    this.creg[reg].fill(0)
   }
   
   assertSize(qbit, cbit, top) {
-    var err = Q$['unequal'].replaceAll('_creg_', cbit.reg).replaceAll('_qreg_', qbit.reg);
-    if (this.topology != undefined) {
+    if (this.constrained) {
       if (this.qreg[qbit.reg].length != this.creg[cbit.reg].length) {
-        console.log(err);
-        this.error(err);
+        this.errors.unequal(cbit.reg, qbit.reg);
       } else {
         return true;
       }
@@ -76,11 +148,8 @@ class QProcessor {
     }
   }
   
-  init(array, reg) {
-    array = array || [];
-    reg = reg || 'q';
-    for (var i = 0; i < array.length; i++) {
-      var val = array[i];
+  init(array = [], reg = 'q') {
+    array.forEach((val, i) => {
       var bit = this.bit(i, reg);
       bit.setScope('init');
       if (val == '1' || val == 1) { bit.x();
@@ -91,7 +160,7 @@ class QProcessor {
       } else if (val == '=') { bit.id();
       }
       bit.setScope();
-    }
+    });
   }
   
   bits() {
@@ -107,27 +176,22 @@ class QProcessor {
     index == index || 0;
     reg = reg || "q";
         
-    //IDEAL ARCHITECTURE
-    var err = Q$['q_undefined'].replaceAll("_reg_",reg).replaceAll("_index_",index);
-    if (this.topology == undefined) {
-      if (this.qreg[reg] == undefined) {
-        this.qreg[reg] = [];
-      } 
-      if (this.qreg[reg][index] == undefined) {
-        this.qreg[reg][index] = new QBit(reg, index, this);  
-      }
+    
+    if (!this.constrained) { //UNCONSTRAINED TOPOLOGY
+      if (this.qreg[reg] == undefined) this.qreg[reg] = []; 
+      if (this.qreg[reg][index] == undefined) this.qreg[reg][index] = new QBit(reg, index, this);
       return this.qreg[reg][index];
-    } else if (this.qreg[reg] != undefined) { //CONSTRAINED TOPOLOGY
+    } else if (this.qreg[reg] != undefined) {
       if (this.qreg[reg][index] != undefined) {
         return this.qreg[reg][index];
       } else if (index == undefined) {
         return new QBit(reg, index, this);
       } else {
-        this.error(err);
+        this.errors.qbit(reg, index);
         return new QBit(reg, index, this);
       }
     } else {
-      this.error(err);
+      this.errors.qbit(reg, index);
       return new QBit(reg, index, this);
     }
   }
@@ -140,9 +204,8 @@ class QProcessor {
     
     index = (index == undefined || index == null) ? -1 : index;
     reg = reg || 'c';
-    //IDEAL ARCHITECTURE
-    var err = Q$['c_undefined'].replaceAll("_reg_",reg).replaceAll("_index_",index);
-    if (this.topology == undefined) {
+
+    if (!this.constrained) { //UNCONSTRAINED TOPOLOGY
       if (this.creg[reg] == undefined) {
         this.creg[reg] = [0];
         return new CBit(reg, index);
@@ -153,57 +216,52 @@ class QProcessor {
         return new CBit(reg, index, this.creg[reg][index]);
       }
     } else if (this.creg[reg] != undefined) { //CONSTRAINED TOPOLOGY
-      if (this.topology.creg[reg] >= index) {
+      if (this.creg[reg] >= index) {
         return new CBit(reg, index, this.creg[reg][index]);
       } else {
-        this.error(err);
+        this.errors.cbit(reg, index);
         return new CBit(reg, index, 0);
       }
     } else {
-      this.error(err);
+      this.errors.cbit(reg, index);
       return new CBit(reg, index, 0);
     }
   }
   
-  exists(index, reg) {
-    reg = reg || 'q';
-    if (this.topology == undefined) { return true; }
+  exists(index, reg = 'q') {
+    if (!this.constrained) return true;
     return this.qreg[reg][index] != undefined ? true : false;
+  }
+
+  operation(operation, target, scope, condition="") {
+    if (Array.isArray(target)) target = target.join(",");
+    var str = condition.length > 0 ? condition + " " : "";
+    str += operation + " " + target + ";"
+    this.add(str, scope);
+  }
+
+  assign(operation, origin, destiny, scope, condition="") {
+    var str = condition.length > 0 ? condition + " " : "";
+    str += operation + " " + origin + " -> " + destiny + ";"
+    this.add(str, scope);
   }
   
   compile(callback) {
-    var compiled = "include \"qelib1.inc\";";
-    compiled += "\r\n\r\n";
-    if (this.qreg != undefined) {
-      for (var key in this.qreg) {
-        compiled += "qreg _name_[_count_];\r\n"
-        .replaceAll("_name_", key)
-        .replaceAll("_count_", this.qreg[key].length || 0);
-      }  
-    }
-    if (this.creg != undefined) {
-      for (var key in this.creg) {
-        compiled += "creg _name_[_count_];\r\n"
-        .replaceAll("_name_", key)
-        .replaceAll("_count_", this.creg[key].length || 0);
-      }  
-    }
-    compiled += "\r\n";
-    for (var i = 0; i < this.inits.length; i++) {
-      compiled += this.inits[i];
-      compiled += "\r\n";
-    }
-    compiled += "\r\n";
-    for (var i = 0; i < this.operations.length; i++) {
-      compiled += this.operations[i];
-      compiled += "\r\n";
-    }
+    var line = "\r\n";
+    var header = "include \"qelib1.inc\";";
+    var compiled = header + line + line;
+    for (var key in this.qreg || {}) compiled += "qreg {}[{}];".format(key, this.qreg[key].length || 0) + line;
+    for (var key in this.creg || {}) compiled += "creg {}[{}];".format(key, this.creg[key].length || 0) + line;
+    compiled += line;
+    compiled += this.inits.join(line);
+    compiled += line;
+    compiled += this.operations.join(line);
     if (callback) callback(compiled);
     return compiled;
   }
   
   comment(text) {
-      this.operations.push("// "+text);
+    this.operations.push("// "+text);
   }
   
   add(operation, scope) {
@@ -230,11 +288,10 @@ class QProcessor {
     reg = reg || 'q';
     indexes = indexes || [];
     var arr = [];
-    for (var i = 0; i < indexes.length; i++) {
-      var index = indexes[i];
-      var _bit = this.bit(index, reg);
+    indexes.forEach(i =>{
+      var _bit = this.bit(i, reg);
       arr.push(_bit.name);
-    }
+    });
     this.add("barrier " + (arr.join(',') || reg) + ";");
     return this;
   }
@@ -245,9 +302,7 @@ class QProcessor {
   }
   
   mask(mask, func) {
-    for(var i = 0; i < mask.length; i++) {
-      if (mask[i] == 1) func(Q.bit(i));
-    }
+    mask.forEach((val, i) => { if (mask[i] == 1) func(Q.bit(i)); });
     return this;
   }
   
@@ -258,9 +313,7 @@ class QProcessor {
   error(message) {
     console.log("ERROR: " + message);
     this.add(">>>>>>> ERROR: " + message);
-    if (this.fallback) {
-      this.fallback(message, this.compile());
-    }
+    if (this.fallback) this.fallback(message, this.compile());
     this.terminated = true;
   }
   
@@ -273,20 +326,20 @@ class QBit {
     this.scope = 'body';
     this.targets = targets;
     this.index = index == undefined ? -1 : index;
-    this.Q = Q;
     this.reg = reg || 'q';
     this.name = this.reg + (this.index < 0 ? "":("["+this.index+"]"));
-  }
-  
-  bit(bit) {
-    if (this.Q) this.Q.bit(bit);
-  }
-  
-  error(message) {
-    if (this.Q != undefined) {
-      this.Q.error(message);
+    if (Q != undefined) {
+      this.Q = Q;
+      this.attached = true;
+    } else {
+      this.Q = new QuantumJS();
+      this.attached = false;
     }
   }
+  
+  bit(bit) { if (this.attached) this.Q.bit(bit); }
+  
+  error(message) { this.Q.error(message); }
   
   setIndex(index){
     this.index = index;
@@ -295,66 +348,36 @@ class QBit {
   
   setQ(Q) {
     this.Q = Q;
+    this.attached = true;
     return this;
   }
   
-  setScope(scope) {
-    this.scope = scope || 'body';
+  setScope(scope = 'body') {
+    this.scope = scope;
   }
   
   openConditional(condition) { 
     this.condition = "if(" + condition + ") "; 
   }
+
   closeConditional() { 
     this.condition = undefined; 
   }
   
-  validate(target, silent) {
-    if (this.targets == 0 || this.targets == undefined || this.targets == null) { return true; }
+  validate(target) {
+    if (this.targets == undefined || this.targets == null) return true;
     var targetIndex = target.index || target;
-    if (this.targets.indexOf(targetIndex) != -1) {
-      if (this.Q != undefined) {
-        if (this.Q.exists(targetIndex)) {
-          return true;
-        } else {
-          this.error(Q$['q_undefined'].replaceAll("_reg_",target.reg).replaceAll("_index_",target.index));
-        }
-      } else {
-        this.error(Q$['orphan'].replaceAll("_index_",this.index));
-      }
-    } else {
-      if (silent) console.log("me("+this.index+") targets: "+this.targets+" target("+target.index+").targets: "+target.targets);
-      if (!silent) this.error(
-        Q$['notconnected'].replaceAll("_index_",this.index).replaceAll('_reg_',this.reg)
-        .replaceAll("_index2_",target.index).replaceAll("_reg2_",target.reg)
-      );
-    }
-    return false;
-  }
-  
-  operation(operation, _scope) {
-    if (this.Q != undefined) {
-      if (this.condition != undefined) {
-        operation = this.condition + operation;
-      }
-      this.Q.add(operation.replaceAll("_q_", this.name), _scope);
-    }
-    return this;
+    return this.targets.indexOf(targetIndex) != -1;
   }
   
   pre(test) {
-    if (this.Q != undefined) {
-      this.Q.pre(test);
-    }
+    this.Q.pre(test);
     return this;
   }
   
-  gate(name, bits){
-    if (bits == undefined) {
-      return this.operation(name+" "+this.name+";");
-    } else {
-      return this.operation(name + " _q_;".replaceAll("_q_", bits));
-    }
+  gate(gate, bits){
+    this.Q.operation(gate, bits || this.name);
+    return this;
   }
   
   isQBit(obj) {
@@ -363,13 +386,17 @@ class QBit {
   
   getTarget(target) {
     if (!this.isQBit(target)) target = this.Q.bit(target, this.reg);
-    if (this.validate(target)) return target; 
+    if (this.validate(target)) {
+      return target; 
+    } else {
+      this.Q.errors.notconn(this.reg, this.index, target.reg, target.index);
+    }
   }
   
   getTargetOrReverse(target) {
-    if (this.validate(target, 'silent')) {
+    if (this.validate(target)) {
       return 2; 
-    } else if (target.validate(this, 'silent')) {
+    } else if (target.validate(this)) {
       return 1;
     } else {
       return 0;
@@ -378,8 +405,7 @@ class QBit {
   
   controlled(gate, target) {
     target = this.getTarget(target);
-    if (target) 
-      this.operation(gate+" _q_,_qt_;".replaceAll("_qt_", target.name));
+    if (target) this.Q.operation(gate, [this.name, target.name]);
     return this;
   }
   
@@ -444,16 +470,18 @@ class QBit {
     return a;
   }
   
-  cu1(param, target) {
-    target = this.getTarget(target);
+  cu1(param, index) {
+    var target = this.getTarget(index);
     if (target) {
       var gate = 'cu1(' + param + ')';
-      this.operation(gate+" _q_,_qt_;".replaceAll("_qt_", target.name));
+      this.Q.operation(gate, [this.name, target.name]);
     }
+    return this;
   }
   
-  cu1$(param, target) {
-    if (!this.isQBit(target)) target = this.Q.bit(target, this.reg);
+  cu1$(param, index) {
+    var target;
+    if (!this.isQBit(index)) target = this.Q.bit(index, this.reg);
     if (target) {
       this.u([param+'/2']);
       this.acx(target);
@@ -465,7 +493,6 @@ class QBit {
   }
   
   rcnot(target) { return this.rcx(target); }
-  
   rcx(target) {
     target = this.getTarget(target);
     if (target) {
@@ -502,7 +529,7 @@ class QBit {
         cbit = this.Q.cbit(index, group);
       }
       if (cbit) {
-        this.operation("measure _q_ -> _c_;".replaceAll("_c_", cbit.name));
+        this.Q.assign("measure", this.name, cbit.name);
         if (index == undefined || index < 0 || index instanceof String) {
           this.Q.assertSize(this, cbit);
         } else {
@@ -589,14 +616,4 @@ class CBit {
   gte(to) { this.test = this.logic(">=", to); return this;  }
   lt(to) { this.test = this.logic("<", to); return this;  }
   lte(to) { this.test = this.logic("<=", to); return this;  }
-}
-
-var IBM_Q5_2017 = {
-  'name': 'IBM_Q5_2017',
-  'qreg': {
-    'q':[
-      [1,2], [2], [], [2,4], [2]
-    ]
-  },
-  'creg': { 'c':5 }
 }
