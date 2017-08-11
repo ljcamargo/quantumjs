@@ -17,12 +17,12 @@ Include quantum.js on your project.
 
 Initialize an **IDEAL** quantum processor with unlimited qubits and unlimited interactions.
 ```javascript
-var Q = new QProcessor();
+var Q = new QuantumJS();
 ```
 
-Or initialize with the IBM Q5 Real Device topology.
+Or initialize with the 5-qubit IBMQX2.
 ```javascript
-var Q = new QProcessor(IBM_Q5_2017);
+var Q = new QuantumJS('ibmqx2');
 ```
 
 You may also create another custom topology (read further)
@@ -90,9 +90,9 @@ Q.bit(0).t_(); //T conjugate
 You must provide rotation angles in an array (lambda, phi, theta)
 ```javascript
 // lambda
-Q.bit(0).u( [π.div(2)] );			// u1(pi/2) q[0]; 
+Q.bit(0).u( [Q.π.div(2)] );			// u1(pi/2) q[0]; 
 // lambda, phi
-Q.bit(0).u( [π.div(2), π.div(4)] );	// u2(pi/2, pi/4) q[0]; 
+Q.bit(0).u( [Q.π.div(2), Q.π.div(4)] );	// u2(pi/2, pi/4) q[0]; 
 // lambda, phi, theta
 Q.bit(0).u( [0.3, 0.2, 0.1] );		// u3(0.3, 0.2, 0.1) q[0]; 
 ```
@@ -153,8 +153,8 @@ var qasm = Q.compile();
 You may also use a callback pattern for compiling
 ```javascript
 Q.compile(function(str) {
-  $('div').text(str); // jquery to write the qasm code to a div
-  hljs.initHighlightingOnLoad(); //use hljs to highlight the code
+  $('div').text(str); // In this examples we use jQuery to write the qasm code to a div
+  hljs.initHighlightingOnLoad(); //and highlight.js to highlight the code
 });
 ```
 
@@ -172,7 +172,7 @@ function qft(Q, bits, values) {
   Q.barrier().brk();
   for (var i = 0; i < bits; i++) {
     for (var j = 0; j < i; j++) {
-      Q.bit(i).cu1(π.div(Math.pow(2, i-j)), j);
+      Q.bit(i).cu1(Q.π.div(Math.pow(2, i-j)), j);
     }
     Q.bit(i).h().brk();
   }
@@ -181,7 +181,7 @@ function qft(Q, bits, values) {
 };
 
 var values = [1,0,1,0,1,0,1,0];
-var Q = new QProcessor();
+var Q = new QuantumJS();
 Q = qft(Q, values);
 var qasm = Q.compile();
 console.log(qasm); 
@@ -200,7 +200,7 @@ function iqft(Q, bits, values) {
   Q.barrier().brk();
   for (var i = 0; i < bits; i++) {
     for (var j = 0; j < i; j++) {
-      Q.bit(i).u([π.div(Math.pow(2, i-j))])._if(Q.cbit('c'+(i-1)));
+      Q.bit(i).u([Q.π.div(Math.pow(2, i-j))])._if(Q.cbit('c'+(i-1)));
     }
     Q.bit(i).h().brk();
     Q.bit(i).measureTo(0,'c'+i);
@@ -209,7 +209,7 @@ function iqft(Q, bits, values) {
 };
 
 var values = ['+','+','+','+','+','+','+','+'];
-var Q = new QProcessor();
+var Q = new QuantumJS();
 Q = iqft(Q, values);
 var qasm = Q.compile();
 console.log(qasm);
@@ -239,7 +239,7 @@ function getNCXSpannedArray(arr) {
 }
 
 var values = [1,1,1,1];
-var Q = new QProcessor();
+var Q = new QuantumJS();
 var span = getNCXSpannedArray(values);
 
 Q.comment("Set Initial State");
