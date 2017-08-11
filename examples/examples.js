@@ -1,5 +1,5 @@
 //A Random Classical Circuit
-var Q = new QProcessor(IBM_Q5_2017);
+var Q = new QuantumJS(ibmqx2);
 Q.bit(0).x();
 Q.bit(2).x();
 Q.bit(4).x();
@@ -13,7 +13,7 @@ hljs.initHighlightingOnLoad();
 
 
 //5Q Complete Superposition Circuit (Simplified)
-var Q = new QProcessor(IBM_Q5_2017);
+var Q = new QuantumJS(ibmqx2);
 Q.bits().h().measure();
 
 Q.compile(function(compiled) {
@@ -23,7 +23,7 @@ Q.compile(function(compiled) {
 
 
 //BELL ZW State Measurement
-var Q = new QProcessor(IBM_Q5_2017);
+var Q = new QuantumJS(ibmqx2);
 Q.bit(0).h().cnot(1);
 Q.bit(1).toW();
 Q.bit(0).measure();
@@ -36,7 +36,7 @@ Q.compile(function(compiled) {
 
 
 //3Q GHZ State XYY-Measurement
-var Q = new QProcessor();
+var Q = new QuantumJS();
 Q.bit(0).h();
 Q.bit(1).h();
 Q.bit(2).x();
@@ -57,7 +57,7 @@ Q.compile(function(compiled) {
 
 
 //RNOT EXAMPLE 
-var Q = new QProcessor();
+var Q = new QuantumJS();
 Q.bit(1).x();
 Q.bit(0).rcnot(1).measureTo(0);
 Q.bit(1).measure();
@@ -69,7 +69,7 @@ Q.compile(function(compiled) {
 
 
 //SWAP EXAMPLE
-var Q = new QProcessor();
+var Q = new QuantumJS();
 Q.bit(1).x();
 Q.bit(0).swapWith(1);
 Q.bit(1).measureTo(0);
@@ -85,7 +85,7 @@ Q.compile(function(compiled) {
 
 
 //Toffoli with flips
-var Q = new QProcessor();
+var Q = new QuantumJS();
 
 Q.comment("set initial state");
 Q.init([1,1,'=']);

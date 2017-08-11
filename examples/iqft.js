@@ -1,4 +1,4 @@
-function iqft(Q, bits, values) {
+function iqft(bits, values) {
   if (bits && bits instanceof Object) {
     values = bits; bits = values.length;
   }
@@ -7,18 +7,18 @@ function iqft(Q, bits, values) {
   Q.barrier().brk();
   for (var i = 0; i < bits; i++) {
     for (var j = 0; j < i; j++) {
-      Q.bit(i).u([π.div(Math.pow(2, i-j))])._if(Q.cbit('c'+(i-1)));
+      Q.bit(i).u([Q.π.div(Math.pow(2, i-j))])._if(Q.cbit('c'+(i-1)));
     }
     Q.bit(i).h().brk();
     Q.bit(i).measureTo(0,'c'+i);
   }
-  return Q;
 };
 
 //IQFT FROM A UNIFORM SUPERPOSITION OF 8-qubits
 var values = ['+','+','+','+','+','+','+','+'];
-var Q = new QProcessor();
-Q = iqft(Q, values);
+var Q = new QuantumJS();
+Q.addFunction('iqft', iqft);
+Q.fnc.iqft(values);
 var qasm = Q.compile();
 console.log(qasm);
 

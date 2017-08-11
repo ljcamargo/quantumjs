@@ -8,7 +8,7 @@
 */
 
 
-function ncx(Q, n) {
+function ncx(n) {
   for (var i = 0; i <= n; i+=2) {
     Q.bit(i).ccx(i+1, i+2);
   }
@@ -16,7 +16,6 @@ function ncx(Q, n) {
   for (var i = (n-l); i >= 2; i-=2) {
     Q.bit(i-2).ccx(i-1, i);
   }
-  return Q;
 }
 
 function getNCXSpannedArray(arr) {
@@ -29,13 +28,14 @@ function getNCXSpannedArray(arr) {
 }
 
 var values = [1,1,1,1];
-var Q = new QProcessor();
+var Q = new QuantumJS();
 var span = getNCXSpannedArray(values);
 
+Q.addFunction('ncx', ncx);
 Q.comment("Set Initial State");
 Q.init(span);
 Q.barrier().brk();
-Q = ncx(Q, values.length);
+Q.fnc.ncx(values.length);
 Q.bit().measure();
 
 var qasm = Q.compile();
