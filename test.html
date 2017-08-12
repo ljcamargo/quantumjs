@@ -4,6 +4,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.9.0/highlight.min.js"></script>
   <script src="quantum.js"></script>
 </head>
+<title>Grover's Example</title>
 <style>
   body {
     margin: 0;
@@ -26,39 +27,6 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.9.0/styles/agate.min.css">
 <body><pre><code class="php"></code></pre></body>
 <script>
-
-/*function qft(bits, values) {
-  if (bits && bits instanceof Object) {
-    values = bits; bits = values.length;
-  }
-  Q.comment(bits + "-bit Quantum Fourier Transform");
-  if (values) Q.init(values);
-  Q.barrier().brk();
-  for (var i = 0; i < bits; i++) {
-    for (var j = 0; j < i; j++) {
-      Q.bit(i).cu1(Q.π.div(Math.pow(2, i-j)), j);
-    }
-    Q.bit(i).h().brk();
-  }
-};
-
-//USAGE EXAMPLE
-//QUANTUM FOURIER TRANSFORM FROM A 8-qubit ARRAY;
-var values = [1,0,1,0,1,0,1,0];
-var Q = new QuantumJS();
-Q.addFunction('qft', qft);
-Q.fnc.qft(values);
-Q.bit().h();
-Q.bit().measure();
-
-Q.compile(function(compiled) {
-  $('code').text(compiled);
-  console.log(compiled);
-});*/
-
-//////    WARNING !!!!
-//////    PROTOTYPE! NOT TESTED !!!!
-//////
 
 function getNCXMask(values) {
   var mask = [1,1,0];
