@@ -1,10 +1,11 @@
 <html>
 <head>
+  <meta charset="UTF-8">
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.9.0/highlight.min.js"></script>
   <script src="quantum.js"></script>
+  <title>Grover's Example</title>
 </head>
-<title>Grover's Example</title>
 <style>
   body {
     margin: 0;
@@ -23,11 +24,15 @@
     font-size: 14pt;
     color:white;
   }
+
+  h3 { color:white; }
 </style>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.9.0/styles/agate.min.css">
-<body><pre><code class="php"></code></pre></body>
-<script>
-
+<body><h3>Source</h3><pre><code class="javascript"></code></pre>
+<br>
+<h3>Compiled</h3>
+<pre><code class="php"></code></pre></body>
+<script id="src">
 function getNCXMask(values) {
   var mask = [1,1,0];
   for (var i = 2; i < values.length; i++) {
@@ -92,7 +97,8 @@ Q.fnc.grover(input, 4);
 Q.comment("Measurement");
 Q.bit().measure();
 Q.compile(function(compiled) {
-  $('code').text(compiled);
+  $('.php').text(compiled);
+  $('.javascript').text(($("#src")[0]).innerHTML);
   hljs.initHighlightingOnLoad();
 });
 
