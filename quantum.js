@@ -216,7 +216,9 @@ class QuantumJS {
         return new CBit(reg, index, this.creg[reg][index]);
       }
     } else if (this.creg[reg] != undefined) { //CONSTRAINED TOPOLOGY
-      if (this.creg[reg] >= index) {
+      console.log(this.creg[reg]);
+      console.log("constrained topo this.creg[reg]:"+this.creg[reg].length+" index:"+index);
+      if (this.creg[reg].length >= index) {
         return new CBit(reg, index, this.creg[reg][index]);
       } else {
         this.errors.cbit(reg, index);
@@ -521,22 +523,20 @@ class QBit {
   }
   
   measureTo(index, group) {
-    if (this.Q != undefined) {
-      var cbit;
-      if (typeof index === 'object' || index instanceof CBit) {
-        cbit = index;
-      } else {
-        cbit = this.Q.cbit(index, group);
-      }
-      if (cbit) {
-        this.Q.assign("measure", this.name, cbit.name);
-        if (index == undefined || index < 0 || index instanceof String) {
-          this.Q.assertSize(this, cbit);
-        } else {
-          this.Q.assertSize(this, cbit, index);
-        }
-      }    
+    var cbit;
+    if (typeof index === 'object' || index instanceof CBit) {
+      cbit = index;
+    } else {
+      cbit = this.Q.cbit(index, group);
     }
+    if (cbit) {
+      this.Q.assign("measure", this.name, cbit.name);
+      if (index == undefined || index < 0 || index instanceof String) {
+        this.Q.assertSize(this, cbit);
+      } else {
+        this.Q.assertSize(this, cbit, index);
+      }
+    }    
     return this;
   }
   
