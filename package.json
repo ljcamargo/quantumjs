@@ -1,0 +1,28 @@
+{
+  "name": "quantumjs",
+  "version": "1.0.0",
+  "description": "[![GitHub version](https://badge.fury.io/gh/lsjcp%2Fquantumjs.svg)](https://badge.fury.io/gh/lsjcp%2Fquantumjs)",
+  "main": "quantum.js",
+  "directories": {
+    "example": "examples"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ljcamargo/quantumjs.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/ljcamargo/quantumjs/issues"
+  },
+  "homepage": "https://github.com/ljcamargo/quantumjs#readme",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ]
+}
