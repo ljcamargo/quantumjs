@@ -1,1 +1,30 @@
+# dependencies
+node_modules/
+.pnp
+.pnp.*
+
+# testing
+coverage/
+
+# next.js
+.next/
+out/
+
+# production / build
+dist/
+build/
+*.tsbuildinfo
+next-env.d.ts
+
+# misc
+.DS_Store
+*.pem
+*.log
+.vercel
+.gemini/
+
+# Scratch and test files
+test_qc_compat.js
+test_qc_compat_v2.js
+packages/quantum-core/src/test_verify.ts
 test.html
