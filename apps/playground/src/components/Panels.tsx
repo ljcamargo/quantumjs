@@ -4,6 +4,7 @@ import Editor from 'react-simple-code-editor';
 import { highlight, languages } from 'prismjs/components/prism-core';
 import 'prismjs/components/prism-clike';
 import 'prismjs/components/prism-javascript';
+import 'prismjs/themes/prism-tomorrow.css';
 import { Terminal, Layers, Cpu, Code, Info } from 'lucide-react';
 
 interface PanelProps {
@@ -15,15 +16,15 @@ interface PanelProps {
 }
 
 export const Panel: React.FC<PanelProps> = ({ title, icon, children, className = "", headerAction }) => (
-  <div className={`flex flex-col bg-[#111114] border border-white/5 overflow-hidden shadow-2xl ${className}`}>
-    <div className="px-3 py-1.5 border-b border-white/5 flex items-center justify-between bg-black/40">
+  <div className={`flex flex-col bg-[#111114] border border-white/5 shadow-2xl h-full ${className}`}>
+    <div className="px-3 py-1.5 border-b border-white/5 flex items-center justify-between bg-black/40 flex-shrink-0">
       <div className="flex items-center gap-2 text-slate-400">
         <span className="text-slate-500">{icon}</span>
         <span className="text-[10px] font-bold uppercase tracking-widest">{title}</span>
       </div>
       {headerAction}
     </div>
-    <div className="flex-1 overflow-auto">
+    <div className="flex-1 overflow-auto min-h-0">
       {children}
     </div>
   </div>
@@ -31,7 +32,17 @@ export const Panel: React.FC<PanelProps> = ({ title, icon, children, className =
 
 export const EditorPanel = ({ code, setCode }: { code: string, setCode: (c: string) => void }) => (
   <Panel title="DSL Input" icon={<Code size={14} />}>
-    <div className="p-2 npm-editor h-full">
+    <div className="npm-editor h-full">
+      <style dangerouslySetInnerHTML={{ __html: `
+        .npm-editor textarea { outline: none !important; }
+        .npm-editor pre { pointer-events: none; }
+        /* Enable both horizontal and vertical scrolling */
+        .npm-editor textarea, .npm-editor pre { 
+          white-space: pre !important; 
+          word-break: normal !important;
+          overflow-wrap: normal !important;
+        }
+      `}} />
       <Editor
         value={code}
         onValueChange={setCode}
@@ -39,8 +50,9 @@ export const EditorPanel = ({ code, setCode }: { code: string, setCode: (c: stri
         padding={10}
         style={{
           fontFamily: '"Geist Mono", "Fira code", "Fira Mono", monospace',
-          fontSize: 12,
+          fontSize: 14,
           minHeight: '100%',
+          minWidth: '100%',
         }}
       />
     </div>
@@ -51,7 +63,7 @@ export const QasmPanel = ({ qasm }: { qasm: string }) => (
   <Panel title="Generated QASM 3.0" icon={<Terminal size={14} />}>
     <div className="p-4 h-full">
       <pre 
-        className="text-[11px] font-mono text-cyan-500/80 whitespace-pre-wrap"
+        className="text-[13px] font-mono text-cyan-500/80 whitespace-pre"
         dangerouslySetInnerHTML={{ __html: highlight(qasm, languages.clike, 'clike') }}
       />
     </div>
