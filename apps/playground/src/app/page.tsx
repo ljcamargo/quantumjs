@@ -101,27 +101,27 @@ export default function Playground() {
       {/* Main Content - Tight grid */}
       <main className="flex-1 flex overflow-hidden">
         {/* Left Side: Editor (40%) */}
-        <div className="w-[40%] flex flex-col border-r border-white/5">
-          <div className="flex-1 overflow-hidden">
+        <div className="w-[40%] flex flex-col border-r border-white/5 h-full">
+          <div className="flex-1 overflow-hidden h-full">
              <EditorPanel code={code} setCode={setCode} />
           </div>
           <ErrorDisplay error={error} />
         </div>
 
         {/* Right Side: Outputs (60%) */}
-        <div className="flex-1 flex flex-col overflow-hidden bg-black/20">
+        <div className="flex-1 flex flex-col overflow-hidden bg-black/20 h-full">
           {/* Top Half: QASM & Results */}
-          <div className="flex h-[40%] border-b border-white/5">
-             <div className="flex-1 border-r border-white/5">
+          <div className="flex h-[40%] border-b border-white/5 flex-shrink-0">
+             <div className="flex-1 border-r border-white/5 h-full">
                 <QasmPanel qasm={qasm} />
              </div>
-             <div className="w-64">
+             <div className="w-64 h-full">
                 <ResultsPanel results={results} isSimulating={isSimulating} />
              </div>
           </div>
           
           {/* Bottom Half: Visualizer */}
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 overflow-hidden h-full">
              <VisualizerPanel qasm={qasm} />
           </div>
         </div>
