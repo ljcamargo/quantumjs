@@ -9,6 +9,8 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@ljcamargo/quirkvis-core": "0.1.2",
+    "@ljcamargo/quirkvis-react": "0.1.2",
     "@types/prismjs": "^1.26.6",
     "clsx": "^2.1.1",
     "framer-motion": "^12.38.0",
