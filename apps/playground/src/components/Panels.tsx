@@ -1,0 +1,103 @@
+import React from 'react';
+import Editor from 'react-simple-code-editor';
+// @ts-ignore
+import { highlight, languages } from 'prismjs/components/prism-core';
+import 'prismjs/components/prism-clike';
+import 'prismjs/components/prism-javascript';
+import { Terminal, Layers, Cpu, Code, Info } from 'lucide-react';
+
+interface PanelProps {
+  title: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+  className?: string;
+  headerAction?: React.ReactNode;
+}
+
+export const Panel: React.FC<PanelProps> = ({ title, icon, children, className = "", headerAction }) => (
+  <div className={`flex flex-col bg-[#111114] border border-white/5 overflow-hidden shadow-2xl ${className}`}>
+    <div className="px-3 py-1.5 border-b border-white/5 flex items-center justify-between bg-black/40">
+      <div className="flex items-center gap-2 text-slate-400">
+        <span className="text-slate-500">{icon}</span>
+        <span className="text-[10px] font-bold uppercase tracking-widest">{title}</span>
+      </div>
+      {headerAction}
+    </div>
+    <div className="flex-1 overflow-auto">
+      {children}
+    </div>
+  </div>
+);
+
+export const EditorPanel = ({ code, setCode }: { code: string, setCode: (c: string) => void }) => (
+  <Panel title="DSL Input" icon={<Code size={14} />}>
+    <div className="p-2 npm-editor h-full">
+      <Editor
+        value={code}
+        onValueChange={setCode}
+        highlight={code => highlight(code, languages.javascript, 'javascript')}
+        padding={10}
+        style={{
+          fontFamily: '"Geist Mono", "Fira code", "Fira Mono", monospace',
+          fontSize: 12,
+          minHeight: '100%',
+        }}
+      />
+    </div>
+  </Panel>
+);
+
+export const QasmPanel = ({ qasm }: { qasm: string }) => (
+  <Panel title="Generated QASM 3.0" icon={<Terminal size={14} />}>
+    <div className="p-4 h-full">
+      <pre 
+        className="text-[11px] font-mono text-cyan-500/80 whitespace-pre-wrap"
+        dangerouslySetInnerHTML={{ __html: highlight(qasm, languages.clike, 'clike') }}
+      />
+    </div>
+  </Panel>
+);
+
+export const ResultsPanel = ({ results, isSimulating }: { results: any, isSimulating: boolean }) => (
+  <Panel title="Probabilities" icon={<Layers size={14} />}>
+    <div className="p-4 h-full">
+      {isSimulating ? (
+        <div className="h-full flex flex-col items-center justify-center text-slate-600 gap-2">
+          <div className="w-8 h-8 border-2 border-slate-800 border-t-cyan-500 rounded-full animate-spin" />
+          <p className="text-[10px] font-medium">Simulating...</p>
+        </div>
+      ) : results ? (
+        <div className="space-y-3">
+          {Object.entries(results as Record<string, number>).map(([state, prob]) => (
+            <div key={state} className="space-y-1">
+              <div className="flex justify-between text-[10px] font-mono">
+                <span className="text-cyan-400">|{state}⟩</span>
+                <span className="text-slate-500">{(prob * 100).toFixed(1)}%</span>
+              </div>
+              <div className="h-1.5 w-full bg-black/40 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-cyan-600 to-blue-500 transition-all duration-500"
+                  style={{ width: `${prob * 100}%` }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="h-full flex items-center justify-center text-slate-700 text-[10px] font-mono text-center">
+          Run to see results
+        </div>
+      )}
+    </div>
+  </Panel>
+);
+
+export const ErrorDisplay = ({ error }: { error: string | null }) => {
+  if (!error) return null;
+  return (
+    <div className="bg-red-500/10 border-t border-red-500/20 p-2 flex gap-2 text-red-400 text-[10px] font-mono overflow-auto max-h-32">
+      <Info size={12} className="flex-shrink-0 mt-0.5" />
+      <pre className="whitespace-pre-wrap">{error}</pre>
+    </div>
+  );
+};
