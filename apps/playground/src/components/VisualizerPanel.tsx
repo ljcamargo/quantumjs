@@ -12,8 +12,9 @@ export const VisualizerPanel = ({ qasm }: { qasm: string }) => {
           <QuirkVis 
             qasm={qasm} 
             theme={themes.night} 
-            fit={true}
-            className="w-full max-w-full"
+            fitWidth={true}
+            fitHeight={true}
+            className="w-full h-full flex items-center justify-center"
           />
         ) : (
           <div className="text-slate-700 text-[10px] font-mono">
