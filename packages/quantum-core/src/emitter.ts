@@ -52,6 +52,19 @@ export class Emitter {
         }
       case 'BarrierStatement':
         return `barrier ${node.qubits.map(q => this.emitQubitReference(q)).join(', ')};`;
+      case 'CommentStatement':
+        return `// ${node.text}`;
+      case 'ConditionalStatement':
+        // QASM 2.0 and 3.0 have different conditional syntax
+        // 2.0: if(c==1) h q[0];
+        // 3.0: if(c == 1) { h q[0]; }
+        const condition = this.emitExpression(node.condition);
+        const body = this.emitStatement(node.body, isV3);
+        if (isV3) {
+          return `if (${condition}) {\n  ${body}\n}`;
+        } else {
+          return `if(${condition}) ${body}`;
+        }
       default:
         return '';
     }

@@ -4,13 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "next dev --webpack",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint"
   },
   "dependencies": {
-    "@ljcamargo/quirkvis-core": "0.1.3",
-    "@ljcamargo/quirkvis-react": "0.1.3",
+    "@ljcamargo/quirkvis-core": "0.1.4",
+    "@ljcamargo/quirkvis-react": "0.1.4",
     "@types/prismjs": "^1.26.6",
     "clsx": "^2.1.1",
     "framer-motion": "^12.38.0",

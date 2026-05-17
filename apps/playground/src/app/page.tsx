@@ -9,12 +9,19 @@ import * as Quantum from 'quantum-core';
 import { EditorPanel, QasmPanel, ResultsPanel, ErrorDisplay } from '../components/Panels';
 import { VisualizerPanel } from '../components/VisualizerPanel';
 
-const DEFAULT_CODE = `// Welcome to QuantumJS Playground
+const DEFAULT_CODE = `// 3-bit Quantum Fourier Transform
+const values = [1, 0, 1];
 const c = Quantum.circuit({ qubits: 3 }, Q => {
-  Q.all().h();
-  Q.bit(0).cx(Q.bit(1));
-  Q.bit(1).cx(Q.bit(2));
-  Q.all().barrier().measure();
+  Q.comment("3-bit Quantum Fourier Transform");
+  Q.init(values);
+  Q.barrier().brk();
+  for (let i = 0; i < 3; i++) {
+    for (let j = 0; j < i; j++) {
+      Q.bit(i).cp(Q.bit(j), Quantum.div(Quantum.pi, Math.pow(2, i - j)));
+    }
+    Q.bit(i).h().brk();
+  }
+  Q.all().measure();
 });
 
 return c;`;

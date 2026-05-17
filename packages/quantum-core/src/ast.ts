@@ -15,7 +15,20 @@ export type Statement =
   | ClassicalDeclaration
   | GateCall
   | MeasureStatement
-  | BarrierStatement;
+  | BarrierStatement
+  | CommentStatement
+  | ConditionalStatement;
+
+export interface CommentStatement {
+  kind: 'CommentStatement';
+  text: string;
+}
+
+export interface ConditionalStatement {
+  kind: 'ConditionalStatement';
+  condition: BinaryExpression;
+  body: Statement;
+}
 
 export interface IncludeStatement {
   kind: 'IncludeStatement';
