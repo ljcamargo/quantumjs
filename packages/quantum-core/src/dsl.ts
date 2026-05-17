@@ -47,12 +47,25 @@ export class Circuit {
     return new QBitProxy(this, indices);
   }
 
+  barrier(indices?: number[]) {
+    const targetIndices = indices || Array.from({ length: this.qubitCount }, (_, i) => i);
+    this.program.body.push({
+      kind: 'BarrierStatement',
+      qubits: targetIndices.map(index => ({ kind: 'QubitReference', identifier: 'q', index })),
+    });
+    return this;
+  }
+
   first() {
     return this.bit(0);
   }
 
   last() {
     return this.bit(this.qubitCount - 1);
+  }
+
+  cbit(index: number) {
+    return new CBitProxy(this, index);
   }
 
   // DSL Patterns
@@ -65,6 +78,58 @@ export class Circuit {
         parentSpan: this.qubitCount,
       });
     }
+  }
+
+  comment(text: string) {
+    this.program.body.push({ kind: 'CommentStatement', text });
+    return this;
+  }
+
+  brk() {
+    this.program.body.push({ kind: 'CommentStatement', text: '' });
+    return this;
+  }
+
+  // Initialization helper
+  init(array: (number | string)[], reg: string = 'q') {
+    array.forEach((val, i) => {
+      const b = this.bit(i); // Assume 'q' for now
+      if (val === '1' || val === 1) {
+        b.x();
+      } else if (val === '+') {
+        b.h();
+      } else if (val === '-') {
+        b.h().z();
+      } else if (val === '>' || val === 'r' || val === '+i') {
+        b.h().s();
+      } else if (val === '<' || val === 'l' || val === '-i') {
+        b.h().s_();
+      } else if (val === '=') {
+        b.id();
+      }
+    });
+    return this;
+  }
+
+  mask(maskArray: number[], func: (q: QBitProxy) => void) {
+    maskArray.forEach((val, i) => {
+      if (val === 1) func(this.bit(i));
+    });
+    return this;
+  }
+
+  // Extension helper
+  addFunction(name: string, fnc: Function) {
+    (this as any)[name] = (...args: any[]) => {
+      fnc.apply(this, [this, ...args]);
+      return this;
+    };
+    return this;
+  }
+
+  // Support for accessing the function proxy
+  get fnc() {
+    return this;
   }
 
   compile(options?: { version?: string }): string {
@@ -120,11 +185,21 @@ export class QBitProxy {
   y() { return this.addGate('y'); }
   z() { return this.addGate('z'); }
   s() { return this.addGate('s'); }
+  s_() { return this.addGate('sdg'); } // s conjugate
   t() { return this.addGate('t'); }
+  t_() { return this.addGate('tdg'); } // t conjugate
+  id() { return this.addGate('id'); }
+  reset() { return this.addGate('reset'); }
+
+  u(params: (number | AST.Expression)[]) {
+    const exprs = params.map(p => typeof p === 'number' ? { kind: 'Literal', value: p } as AST.Literal : p);
+    return this.addGate('u', undefined, exprs);
+  }
 
   cx(target: QBitProxy) { return this.addGate('cx', target); }
   cy(target: QBitProxy) { return this.addGate('cy', target); }
   cz(target: QBitProxy) { return this.addGate('cz', target); }
+  cnot(target: QBitProxy) { return this.cx(target); }
 
   cp(target: QBitProxy, theta: number | AST.Expression) {
     const thetaExpr: AST.Expression = typeof theta === 'number' 
@@ -132,6 +207,33 @@ export class QBitProxy {
       : theta;
     return this.addGate('cp', target, [thetaExpr]);
   }
+  cu1(target: QBitProxy, theta: number | AST.Expression) { return this.cp(target, theta); }
+
+  ch(target: QBitProxy) {
+    // Decomposition if needed or just gate call if defined in stdgates
+    return this.addGate('ch', target);
+  }
+
+  ccx(b: QBitProxy, c: QBitProxy) {
+    for (let i = 0; i < this.indices.length; i++) {
+      const q1 = this.indices[i];
+      const q2 = b.indices[i] !== undefined ? b.indices[i] : b.indices[0];
+      const q3 = c.indices[i] !== undefined ? c.indices[i] : c.indices[0];
+      this.circuit.body.push({
+        kind: 'GateCall',
+        gate: 'ccx',
+        qubits: [
+          { kind: 'QubitReference', identifier: 'q', index: q1 },
+          { kind: 'QubitReference', identifier: 'q', index: q2 },
+          { kind: 'QubitReference', identifier: 'q', index: q3 },
+        ],
+      });
+    }
+    return this;
+  }
+  toffoli(b: QBitProxy, c: QBitProxy) { return this.ccx(b, c); }
+
+  swap(target: QBitProxy) { return this.addGate('swap', target); }
 
   barrier() {
     this.circuit.body.push({
@@ -140,6 +242,20 @@ export class QBitProxy {
     });
     return this;
   }
+
+  repeat(times: number, op: keyof QBitProxy, ...params: any[]) {
+    for (let i = 0; i < times; i++) {
+      (this[op] as Function)(...params);
+    }
+    return this;
+  }
+
+  // Basis changes
+  toW() { return this.s().h().t().h(); }
+  toV() { return this.s().h().t_().h(); }
+  toX() { return this.h(); }
+  toY() { return this.s_().h(); }
+  toZ() { return this; }
 
   measure(targetIndex?: number) {
     for (let i = 0; i < this.indices.length; i++) {
@@ -151,6 +267,77 @@ export class QBitProxy {
         target: { kind: 'ClassicalReference', identifier: 'c', index: bIndex },
       });
     }
+    return this;
+  }
+
+  measureTo(index: number) { return this.measure(index); }
+  measureX(index?: number) { return this.toX().measure(index); }
+  measureY(index?: number) { return this.toY().measure(index); }
+  measureZ(index?: number) { return this.toZ().measure(index); }
+  measureW(index?: number) { return this.toW().measure(index); }
+  measureV(index?: number) { return this.toV().measure(index); }
+
+  comment(text: string) {
+    this.circuit.comment(text);
+    return this;
+  }
+
+  brk() {
+    this.circuit.brk();
+    return this;
+  }
+
+  _if(cbit: CBitProxy, callback?: (q: QBitProxy) => void) {
+    if (callback) {
+      const originalBody = [...this.circuit.body];
+      this.circuit.body.length = 0;
+      callback(this);
+      const tempBody = [...this.circuit.body];
+      this.circuit.body.length = 0;
+      originalBody.forEach(s => this.circuit.body.push(s));
+      tempBody.forEach(stmt => {
+        this.circuit.body.push({
+          kind: 'ConditionalStatement',
+          condition: cbit.condition,
+          body: stmt
+        });
+      });
+    } else {
+      // In the old DSL, Q.bit(i).x()._if(cbit) would condition the PREVIOUS operation.
+      // This is what the pre() function did.
+      const lastStmt = this.circuit.body[this.circuit.body.length - 1];
+      if (lastStmt && lastStmt.kind !== 'CommentStatement' && lastStmt.kind !== 'QubitDeclaration' && lastStmt.kind !== 'ClassicalDeclaration' && lastStmt.kind !== 'IncludeStatement') {
+        this.circuit.body[this.circuit.body.length - 1] = {
+          kind: 'ConditionalStatement',
+          condition: cbit.condition,
+          body: lastStmt as AST.Statement
+        };
+      }
+    }
+    return this;
+  }
+}
+
+export class CBitProxy {
+  public condition: AST.BinaryExpression;
+  constructor(public circuit: Circuit, public index: number) {
+    this.condition = {
+      kind: 'BinaryExpression',
+      left: { kind: 'Identifier', name: `c[${index}]` },
+      operator: '==',
+      right: { kind: 'Literal', value: 1 }
+    };
+  }
+
+  isTrue() {
+    this.condition.operator = '==';
+    this.condition.right = { kind: 'Literal', value: 1 };
+    return this;
+  }
+
+  isFalse() {
+    this.condition.operator = '==';
+    this.condition.right = { kind: 'Literal', value: 0 };
     return this;
   }
 }
