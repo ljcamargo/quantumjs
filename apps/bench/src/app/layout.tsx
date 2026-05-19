@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "QuantumJS Playground",
+  title: "QuantumJS Bench",
   description: "Modern Quantum Circuit DSL for JavaScript",
 };
 

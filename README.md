@@ -1,4 +1,4 @@
-# QuantumJS
+# <img src="assets/logo_small.png" align="center" width="40" height="40" /> QuantumJS
 [![GitHub version](https://badge.fury.io/gh/lsjcp%2Fquantumjs.svg)](https://badge.fury.io/gh/lsjcp%2Fquantumjs)
 
 This is an open source library to ease the creation of complex **QASM 2.0** quantum circuits (algorithms) with the simplicity of javascript chaining patterns and other high-level language features.
