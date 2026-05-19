@@ -32,6 +32,7 @@ export default function Playground() {
   const [results, setResults] = useState<Record<string, number> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSimulating, setIsSimulating] = useState(false);
+  const [autoRun, setAutoRun] = useState(true);
 
   const compileAndSimulate = useCallback(() => {
     setError(null);
@@ -78,29 +79,44 @@ export default function Playground() {
   }, [code]);
 
   useEffect(() => {
+    if (!autoRun) return;
     const timer = setTimeout(compileAndSimulate, 1000);
     return () => clearTimeout(timer);
-  }, [compileAndSimulate]);
+  }, [compileAndSimulate, autoRun]);
 
   return (
     <div className="flex flex-col h-screen bg-[#0a0a0c] text-slate-200 font-sans overflow-hidden">
       {/* Header - More compact */}
       <header className="h-10 border-b border-white/5 bg-black/40 backdrop-blur-xl flex items-center justify-between px-4 flex-shrink-0">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
-            <Zap className="text-white w-3.5 h-3.5 fill-white/20" />
+          <div className="w-5 h-5 flex items-center justify-center">
+            <img src="/logo.svg" alt="QuantumJS" className="w-4 h-4 object-contain" />
           </div>
-          <h1 className="text-sm font-bold tracking-tight text-white flex items-center gap-2">
-            QuantumJS <span className="text-[8px] bg-white/10 px-1.5 py-0.5 rounded-full uppercase tracking-wider text-slate-400">Beta</span>
+          <h1 className="text-sm font-bold tracking-tight text-white flex items-center gap-1.5">
+            QuantumJS <span className="text-[8px] bg-white/10 px-1.5 py-0.5 rounded-full uppercase tracking-wider text-slate-400">Bench</span>
           </h1>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
+          {/* Autorun Toggle */}
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <input 
+              type="checkbox" 
+              checked={autoRun} 
+              onChange={(e) => setAutoRun(e.target.checked)}
+              className="sr-only peer"
+            />
+            <div className="w-7 h-4 bg-slate-800 rounded-full peer peer-focus:ring-1 peer-focus:ring-cyan-500/30 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-slate-400 peer-checked:after:bg-cyan-400 after:rounded-full after:h-3 after:w-3 after:transition-all relative peer-checked:bg-cyan-950 border border-slate-700 peer-checked:border-cyan-700/50"></div>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider peer-checked:text-cyan-400">
+              Autorun
+            </span>
+          </label>
+
           <button 
             onClick={compileAndSimulate}
             className="h-7 px-3 bg-cyan-600 hover:bg-cyan-500 text-white text-[10px] font-bold rounded transition-all flex items-center gap-1.5 active:scale-95"
           >
             <Play className="w-3 h-3 fill-current" />
-            RUN
+            {autoRun ? 'RERUN' : 'RUN'}
           </button>
         </div>
       </header>

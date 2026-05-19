@@ -6,7 +6,7 @@ This document tracks the progress of the QuantumJS library modernization and ref
 
 - [x] **Monorepo Architecture**: Established a modular monorepo using `npm workspaces`.
   - `packages/quantum-core`: The core library.
-  - `apps/playground`: Next.js based web environment.
+  - `apps/bench`: Next.js based web environment.
 - [x] **Fluent DSL**: Implemented a modern, declarative API for circuit construction.
   - Supports `Q.all()`, `Q.bit(n)`, `Q.first()`, `Q.last()`, `Q.descend()`.
   - Functional-style circuit definitions.
@@ -30,6 +30,12 @@ This document tracks the progress of the QuantumJS library modernization and ref
   - Compact header and panel structure.
   - Reorganized panels: QASM and Probabilities side-by-side, Visualizer in a full-width row.
   - Modular component structure for easy layout changes.
+- [x] **API Parity**: Ported all functional API from original `quantum.js`.
+  - [x] Added `init`, `addFunction`, `mask`, `comment`, `brk`.
+  - [x] Added `ccx`, `ch`, `cp`, `cu1`, `swap`, `u`.
+  - [x] Implemented classical control flow (`_if`).
+  - [x] Basis-change measurements (`measureX`, `measureY`, etc.).
+- [x] **Testing Repertoire**: Created a test suite in `packages/quantum-core/src/test_repertoire.ts` covering README examples.
 - [ ] **DSL Documentation**: Create a comprehensive guide/README for the new DSL syntax and patterns.
 - [ ] **Gate Expansion**: Add support for more complex gates and custom gate definitions in the AST and DSL.
 - [ ] **Unit Testing**: Implement a test suite for `quantum-core` to ensure AST and Emitter correctness.
