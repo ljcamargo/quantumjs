@@ -32,7 +32,7 @@ export const Panel: React.FC<PanelProps> = ({ title, icon, children, className =
 
 export const EditorPanel = ({ code, setCode }: { code: string, setCode: (c: string) => void }) => (
   <Panel title="DSL Input" icon={<Code size={14} />}>
-    <div className="npm-editor h-full">
+    <div className="npm-editor h-full overflow-auto">
       <style dangerouslySetInnerHTML={{ __html: `
         .npm-editor textarea { outline: none !important; }
         .npm-editor pre { pointer-events: none; }
@@ -41,6 +41,12 @@ export const EditorPanel = ({ code, setCode }: { code: string, setCode: (c: stri
           white-space: pre !important; 
           word-break: normal !important;
           overflow-wrap: normal !important;
+        }
+        /* Force the inner react-simple-code-editor to expand to fit the longest line */
+        .npm-editor > div {
+          width: max-content !important;
+          min-width: 100%;
+          min-height: 100%;
         }
       `}} />
       <Editor
@@ -51,8 +57,6 @@ export const EditorPanel = ({ code, setCode }: { code: string, setCode: (c: stri
         style={{
           fontFamily: '"Geist Mono", "Fira code", "Fira Mono", monospace',
           fontSize: 14,
-          minHeight: '100%',
-          minWidth: '100%',
         }}
       />
     </div>
