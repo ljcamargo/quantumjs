@@ -30,8 +30,8 @@ body {
 
 /* Custom themed scrollbars for dark mode */
 ::-webkit-scrollbar {
-  width: 8px; /* Vertical scrollbar width */
-  height: 10px; /* Horizontal scrollbar height */
+  width: 12px; /* Vertical scrollbar width */
+  height: 14px; /* Horizontal scrollbar height */
 }
 
 ::-webkit-scrollbar-track {
@@ -41,16 +41,17 @@ body {
 ::-webkit-scrollbar-thumb {
   background: #232329;
   border-radius: 9999px;
-  border: 1px solid #0d0d10;
+  border: 2px solid #0d0d10;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: #32323b;
 }
 
-/* Firefox scrollbar support */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: #232329 #0d0d10;
+/* Firefox-only scrollbar support (prevents overriding Chrome/Edge) */
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #232329 #0d0d10;
+  }
 }
-
