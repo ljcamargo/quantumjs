@@ -30,8 +30,8 @@ body {
 
 /* Custom themed scrollbars for dark mode */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px; /* Vertical scrollbar width */
+  height: 10px; /* Horizontal scrollbar height */
 }
 
 ::-webkit-scrollbar-track {
