@@ -14,7 +14,7 @@ export class Circuit {
 
   constructor(config: CircuitConfig) {
     this.qubitCount = config.qubits;
-    this.bitCount = config.bits || config.qubits;
+    this.bitCount = config.bits !== undefined ? config.bits : 1; // Defaults to 1 as per original logic
     this.program = {
       kind: 'Program',
       version: config.version || '3.0',
@@ -64,8 +64,22 @@ export class Circuit {
     return this.bit(this.qubitCount - 1);
   }
 
-  cbit(index: number) {
-    return new CBitProxy(this, index);
+  cbit(index?: number, reg?: string) {
+    return new CBitProxy(this, index, reg);
+  }
+
+  // Asserts and grows the classical register size on demand (equivalent to original assertSize)
+  assertClassicalSize(index?: number) {
+    const targetSize = index !== undefined ? index + 1 : this.qubitCount;
+    if (targetSize > this.bitCount) {
+      this.bitCount = targetSize;
+      const decl = this.program.body.find(
+        (s): s is AST.ClassicalDeclaration => s.kind === 'ClassicalDeclaration' && s.identifier === 'c'
+      );
+      if (decl) {
+        decl.size = this.bitCount;
+      }
+    }
   }
 
   // DSL Patterns
@@ -257,25 +271,59 @@ export class QBitProxy {
   toY() { return this.s_().h(); }
   toZ() { return this; }
 
-  measure(targetIndex?: number) {
-    for (let i = 0; i < this.indices.length; i++) {
-      const qIndex = this.indices[i];
-      const bIndex = targetIndex !== undefined ? targetIndex : qIndex;
-      this.circuit.body.push({
-        kind: 'MeasureStatement',
-        qubit: { kind: 'QubitReference', identifier: 'q', index: qIndex },
-        target: { kind: 'ClassicalReference', identifier: 'c', index: bIndex },
-      });
+  measure() {
+    const index = (this.indices.length === 1 && this.indices[0]! > -1) 
+      ? this.indices[0]! 
+      : undefined;
+    return this.measureTo(index);
+  }
+
+  measureTo(index?: number | CBitProxy, group?: string) {
+    let cbit: CBitProxy;
+    if (typeof index === 'object' && index instanceof CBitProxy) {
+      cbit = index;
+    } else {
+      cbit = this.circuit.cbit(index as number, group);
+    }
+
+    if (cbit) {
+      // Assert and grow the classical register size on demand (assertSize logic)
+      if (cbit.index === -1) {
+        this.circuit.assertClassicalSize(); // Grows to match qubitCount
+      } else {
+        this.circuit.assertClassicalSize(cbit.index); // Grows to index + 1
+      }
+
+      if (this.indices.length === 1) {
+        this.circuit.body.push({
+          kind: 'MeasureStatement',
+          qubit: { kind: 'QubitReference', identifier: 'q', index: this.indices[0]! },
+          target: { 
+            kind: 'ClassicalReference', 
+            identifier: cbit.reg, 
+            index: cbit.index === -1 ? undefined : cbit.index 
+          },
+        });
+      } else {
+        this.circuit.body.push({
+          kind: 'MeasureStatement',
+          qubit: { kind: 'QubitReference', identifier: 'q' }, // No index
+          target: { 
+            kind: 'ClassicalReference', 
+            identifier: cbit.reg, 
+            index: cbit.index === -1 ? undefined : cbit.index 
+          },
+        });
+      }
     }
     return this;
   }
 
-  measureTo(index: number) { return this.measure(index); }
-  measureX(index?: number) { return this.toX().measure(index); }
-  measureY(index?: number) { return this.toY().measure(index); }
-  measureZ(index?: number) { return this.toZ().measure(index); }
-  measureW(index?: number) { return this.toW().measure(index); }
-  measureV(index?: number) { return this.toV().measure(index); }
+  measureX(index?: number | CBitProxy, group?: string) { return this.toX().measureTo(index, group); }
+  measureY(index?: number | CBitProxy, group?: string) { return this.toY().measureTo(index, group); }
+  measureZ(index?: number | CBitProxy, group?: string) { return this.toZ().measureTo(index, group); }
+  measureW(index?: number | CBitProxy, group?: string) { return this.toW().measureTo(index, group); }
+  measureV(index?: number | CBitProxy, group?: string) { return this.toV().measureTo(index, group); }
 
   comment(text: string) {
     this.circuit.comment(text);
@@ -320,10 +368,19 @@ export class QBitProxy {
 
 export class CBitProxy {
   public condition: AST.BinaryExpression;
-  constructor(public circuit: Circuit, public index: number) {
+  public reg: string;
+  public index: number;
+
+  constructor(public circuit: Circuit, index?: number, reg?: string) {
+    this.reg = reg || 'c';
+    this.index = (index === undefined || index === null) ? -1 : index;
+    
     this.condition = {
       kind: 'BinaryExpression',
-      left: { kind: 'Identifier', name: `c[${index}]` },
+      left: { 
+        kind: 'Identifier', 
+        name: this.index === -1 ? this.reg : `${this.reg}[${this.index}]` 
+      },
       operator: '==',
       right: { kind: 'Literal', value: 1 }
     };
@@ -339,6 +396,10 @@ export class CBitProxy {
     this.condition.operator = '==';
     this.condition.right = { kind: 'Literal', value: 0 };
     return this;
+  }
+
+  get name() {
+    return this.reg + (this.index === -1 ? "" : `[${this.index}]`);
   }
 }
 
