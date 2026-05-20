@@ -12,6 +12,19 @@ export class Circuit {
   private qubitCount: number;
   private bitCount: number;
 
+  // Scoped math/instruction helpers for DSL brevity
+  public pi = pi;
+  public div = (left: AST.Expression, right: number | AST.Expression): AST.Expression => {
+    return div(left, right);
+  };
+  
+  // The greek letter gimmick proxy
+  public π = {
+    div: (right: number | AST.Expression): AST.Expression => {
+      return div(pi, right);
+    }
+  };
+
   constructor(config: CircuitConfig) {
     this.qubitCount = config.qubits;
     this.bitCount = config.bits !== undefined ? config.bits : 1; // Defaults to 1 as per original logic

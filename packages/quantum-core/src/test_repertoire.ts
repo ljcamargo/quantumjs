@@ -35,7 +35,7 @@ export function testQFT() {
             for (let j = 0; j < i; j++) {
                 // In original: Q.bit(i).cu1(Q.π.div(Math.pow(2, i-j)), j);
                 // In new DSL we use cp for phase
-                Q.bit(i).cp(Q.bit(j), div(pi, Math.pow(2, i - j)));
+                Q.bit(i).cp(Q.bit(j), Q.π.div(Math.pow(2, i - j)));
             }
             Q.bit(i).h().brk();
         }
