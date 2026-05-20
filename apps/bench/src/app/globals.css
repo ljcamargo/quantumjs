@@ -27,3 +27,30 @@ body {
   padding: 0;
   overflow: hidden;
 }
+
+/* Custom themed scrollbars for dark mode */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0d0d10;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #232329;
+  border-radius: 9999px;
+  border: 1px solid #0d0d10;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #32323b;
+}
+
+/* Firefox scrollbar support */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #232329 #0d0d10;
+}
+
