@@ -17,7 +17,7 @@ const c = Quantum.circuit({ qubits: 3 }, Q => {
   Q.barrier().brk();
   for (let i = 0; i < 3; i++) {
     for (let j = 0; j < i; j++) {
-      Q.bit(i).cp(Q.bit(j), Quantum.div(Quantum.pi, Math.pow(2, i - j)));
+      Q.bit(i).cp(Q.bit(j), Q.π.div(Math.pow(2, i - j)));
     }
     Q.bit(i).h().brk();
   }
