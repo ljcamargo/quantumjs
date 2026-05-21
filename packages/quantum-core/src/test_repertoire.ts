@@ -1,4 +1,5 @@
-import { circuit, pi, div } from './index.js';
+import { circuit, pi, div, pipeline, BENCH_SAMPLE } from './index.js';
+import * as Quantum from './index.js';
 
 // Test 1: Basic Gates & Chaining
 export function testBasic() {
@@ -29,7 +30,7 @@ export function testQFT() {
     const values = [1, 0, 1];
     const c = circuit({ qubits: 3 }, Q => {
         Q.comment("3-bit Quantum Fourier Transform");
-        Q.init(values);
+        Q.input(values);
         Q.barrier().brk();
         for (let i = 0; i < 3; i++) {
             for (let j = 0; j < i; j++) {
@@ -55,8 +56,52 @@ export function testIQFT() {
     console.log(c.compile());
 }
 
+// Test 5: Scoped descend (QFT from QuantumKT)
+export function testScopedQFT() {
+    console.log("Test 5: Scoped QFT");
+    const c = circuit({ qubits: 3 }, Q => {
+        Q.comment("QFT using scoped descend layouts");
+        Q.input("101");
+        Q.descend(subQ => {
+            subQ.last().h();
+            subQ.descend(innerQ => {
+                innerQ.last().cp(
+                    innerQ.first(), 
+                    Q.π.div(Math.pow(2, 1 + innerQ.parentSpan - innerQ.iteration))
+                );
+            });
+        });
+        Q.all().measure();
+    });
+    console.log(c.compile());
+}
+
+// Test 6: Pipeline execution
+export function testPipeline() {
+    console.log("Test 6: Pipeline");
+    const p = pipeline(3, {
+        input: "101",
+        output: "readEach"
+    }, Q => {
+        Q.comment("Core algorithm step");
+        Q.bit(0).cx(Q.bit(1));
+    });
+    console.log(p.compile());
+}
+
+// Test 7: Bench default sample compilation
+export function testBenchSample() {
+    console.log("Test 7: Bench Default Sample");
+    const execute = new Function('Quantum', BENCH_SAMPLE);
+    const p = execute(Quantum);
+    console.log(p.compile());
+}
+
 // Run tests
 testBasic();
 testAdvanced();
 testQFT();
 testIQFT();
+testScopedQFT();
+testPipeline();
+testBenchSample();

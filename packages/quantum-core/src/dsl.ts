@@ -12,6 +12,12 @@ export class Circuit {
   private qubitCount: number;
   private bitCount: number;
 
+  // Sub-circuit scoping context
+  public offset: number = 0;
+  public iteration: number = 0;
+  public parentSpan: number = 0;
+  public inverseSpan: number = 0;
+
   // Scoped math/instruction helpers for DSL brevity
   public pi = pi;
   public div = (left: AST.Expression, right: number | AST.Expression): AST.Expression => {
@@ -95,15 +101,109 @@ export class Circuit {
     }
   }
 
-  // DSL Patterns
-  descend(callback: (q: QBitProxy, context: DescendContext) => void) {
-    for (let i = 0; i < this.qubitCount; i++) {
-      callback(this.bit(i), {
-        iteration: i,
-        last: this.bit(this.qubitCount - 1),
-        first: this.bit(0),
-        parentSpan: this.qubitCount,
-      });
+  // Context-Aware Layouts (Parity with QuantumKT)
+  sub(start: number, end: number, callback: (q: Circuit) => void) {
+    const size = end - start;
+    const subCircuit = new Circuit({ qubits: size, version: this.program.version });
+    subCircuit.program.body = []; // Clear sub-declarations
+    subCircuit.parentSpan = this.qubitCount;
+    subCircuit.offset = this.offset + start;
+    
+    callback(subCircuit);
+    
+    this.mergeSubCircuit(subCircuit, start);
+    return this;
+  }
+
+  ascend(step: number = 1, callback: (q: Circuit) => void) {
+    const span = this.qubitCount;
+    for (let i = 0; i < span; i += step) {
+      const size = i + 1;
+      const subCircuit = new Circuit({ qubits: size, version: this.program.version });
+      subCircuit.program.body = [];
+      subCircuit.parentSpan = span;
+      subCircuit.offset = this.offset + i;
+      subCircuit.iteration = i;
+      subCircuit.inverseSpan = (1 + span) - size;
+      
+      callback(subCircuit);
+      
+      this.mergeSubCircuit(subCircuit, i);
+    }
+    return this;
+  }
+
+  descend(callback: (q: Circuit) => void) {
+    const span = this.qubitCount;
+    for (let i = span - 1; i >= 0; i--) {
+      const size = i + 1;
+      const subCircuit = new Circuit({ qubits: size, version: this.program.version });
+      subCircuit.program.body = [];
+      subCircuit.parentSpan = span;
+      subCircuit.offset = this.offset + 0;
+      subCircuit.iteration = i;
+      subCircuit.inverseSpan = (1 + span) - size;
+      
+      callback(subCircuit);
+      
+      this.mergeSubCircuit(subCircuit, 0);
+    }
+    return this;
+  }
+
+  loop(times: number, callback: (q: Circuit) => void) {
+    for (let i = 0; i < times; i++) {
+      callback(this);
+    }
+    return this;
+  }
+
+  private mergeSubCircuit(sub: Circuit, offset: number) {
+    sub.program.body.forEach(stmt => {
+      const mapped = this.mapStatementOffset(stmt, offset);
+      if (mapped) {
+        this.program.body.push(mapped);
+      }
+    });
+  }
+
+  private mapStatementOffset(stmt: AST.Statement, offset: number): AST.Statement | null {
+    switch (stmt.kind) {
+      case 'GateCall':
+        return {
+          ...stmt,
+          qubits: stmt.qubits.map(q => ({
+            ...q,
+            index: q.index !== undefined ? q.index + offset : undefined
+          }))
+        };
+      case 'MeasureStatement':
+        return {
+          ...stmt,
+          qubit: {
+            ...stmt.qubit,
+            index: stmt.qubit.index !== undefined ? stmt.qubit.index + offset : undefined
+          }
+        };
+      case 'BarrierStatement':
+        return {
+          ...stmt,
+          qubits: stmt.qubits.map(q => ({
+            ...q,
+            index: q.index !== undefined ? q.index + offset : undefined
+          }))
+        };
+      case 'ConditionalStatement':
+        const bodyMapped = this.mapStatementOffset(stmt.body, offset);
+        if (!bodyMapped) return null;
+        return {
+          ...stmt,
+          body: bodyMapped
+        };
+      case 'CommentStatement':
+        return stmt;
+      default:
+        return null;
     }
   }
 
@@ -117,11 +217,32 @@ export class Circuit {
     return this;
   }
 
-  // Initialization helper
-  init(array: (number | string)[], reg: string = 'q') {
-    array.forEach((val, i) => {
-      const b = this.bit(i); // Assume 'q' for now
-      if (val === '1' || val === 1) {
+  // Flexible Input Initialization Helper (formerly init)
+  input(
+    source: string | (number | string)[] | ((q: Circuit) => void),
+    options?: { endian?: 'big' | 'little' }
+  ) {
+    if (typeof source === 'function') {
+      source(this);
+      return this;
+    }
+
+    const endian = options?.endian || 'big';
+    let elements: (string | number)[] = typeof source === 'string' ? source.split('') : source;
+
+    if (endian === 'little') {
+      elements = [...elements].reverse();
+    }
+
+    elements.forEach((val, i) => {
+      // Map index but ensure we do nothing for Identity (I) or Ground State (0)
+      const skipValues = ['0', 0, 'I', 'i', '='];
+      if (skipValues.includes(val)) {
+        return; // Skip adding any gate
+      }
+
+      const b = this.bit(i);
+      if (val === '1' || val === 1 || val === 'X' || val === 'x') {
         b.x();
       } else if (val === '+') {
         b.h();
@@ -131,12 +252,17 @@ export class Circuit {
         b.h().s();
       } else if (val === '<' || val === 'l' || val === '-i') {
         b.h().s_();
-      } else if (val === '=') {
-        b.id();
+      } else if (val === 'H' || val === 'h') {
+        b.h();
+      } else if (val === 'S' || val === 's') {
+        b.s();
+      } else if (val === 'Z' || val === 'z') {
+        b.z();
       }
     });
     return this;
   }
+
 
   mask(maskArray: number[], func: (q: QBitProxy) => void) {
     maskArray.forEach((val, i) => {
@@ -163,13 +289,6 @@ export class Circuit {
     const emitter = new Emitter();
     return emitter.emit(this.program, options);
   }
-}
-
-export interface DescendContext {
-  iteration: number;
-  last: QBitProxy;
-  first: QBitProxy;
-  parentSpan: number;
 }
 
 export class QBitProxy {
@@ -432,3 +551,81 @@ export function div(left: AST.Expression, right: number | AST.Expression): AST.E
     right: typeof right === 'number' ? { kind: 'Literal', value: right } : right,
   };
 }
+
+// Pipeline Abstraction (Parity with QuantumKT Flow)
+export interface PipelineConfig {
+  input?: string | (number | string)[] | ((q: Circuit) => void) | {
+    source: string | (number | string)[] | ((q: Circuit) => void);
+    endian?: 'big' | 'little';
+  };
+  output?: 'readEach' | 'readToOne' | {
+    format: 'readEach' | 'readToOne';
+    postProcess?: (results: Record<string, number>) => any;
+  };
+}
+
+export class Pipeline {
+  private circuit: Circuit;
+  private inputConfig?: any;
+  private outputConfig?: any;
+
+  constructor(qubits: number, config: PipelineConfig, callback: (q: Circuit) => void) {
+    this.circuit = new Circuit({ qubits });
+    this.inputConfig = config.input;
+    this.outputConfig = config.output;
+
+    // 1. Process Input prep stage
+    if (this.inputConfig) {
+      if (typeof this.inputConfig === 'object' && 'source' in this.inputConfig) {
+        this.circuit.input(this.inputConfig.source, { endian: this.inputConfig.endian });
+      } else {
+        this.circuit.input(this.inputConfig);
+      }
+    }
+
+    // 2. Process Core Algorithm stage
+    callback(this.circuit);
+
+    // 3. Process Output measurement stage
+    if (this.outputConfig) {
+      const format = typeof this.outputConfig === 'object' ? this.outputConfig.format : this.outputConfig;
+      if (format === 'readEach') {
+        this.circuit.all().measure();
+      } else if (format === 'readToOne') {
+        this.circuit.first().measure();
+      }
+    }
+  }
+
+  compile(options?: { version?: string }) {
+    return this.circuit.compile(options);
+  }
+
+  get rawCircuit() {
+    return this.circuit;
+  }
+
+  run(simulator: any): any {
+    const qasm = this.circuit.compile({ version: '2.0' });
+    let results: any = null;
+    simulator.importQASM(qasm, (err: any) => {
+      if (err) throw new Error(String(err));
+      simulator.run();
+      results = simulator.probabilities();
+    });
+
+    if (this.outputConfig && typeof this.outputConfig === 'object' && this.outputConfig.postProcess) {
+      return this.outputConfig.postProcess(results);
+    }
+    return results;
+  }
+}
+
+export function pipeline(
+  qubits: number,
+  config: PipelineConfig,
+  callback: (q: Circuit) => void
+): Pipeline {
+  return new Pipeline(qubits, config, callback);
+}
+
