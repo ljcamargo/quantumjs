@@ -3,8 +3,5 @@
   command = "cd ../.. && bun install && bun x tsc --project packages/quantum-core && cd apps/bench && bun run build"
   publish = ".next"
 
-[build.environment]
-  NODE_VERSION = "22"
-
 [[plugins]]
   package = "@netlify/plugin-nextjs"
