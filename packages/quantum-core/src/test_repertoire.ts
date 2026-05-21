@@ -56,38 +56,53 @@ export function testIQFT() {
     console.log(c.compile());
 }
 
-// Test 5: Scoped descend (QFT from QuantumKT)
+// Test 5: Scoped Layout Visualizer (Staircases)
 export function testScopedQFT() {
-    console.log("Test 5: Scoped QFT");
+    console.log("Test 5: Scoped Layout Visualizer (Staircases)");
     const c = circuit({ qubits: 3 }, Q => {
-        Q.comment("QFT using scoped descend layouts");
-        Q.input("101");
-        Q.descend(subQ => {
-            subQ.last().h();
-            subQ.descend(innerQ => {
-                innerQ.last().cp(
-                    innerQ.first(), 
-                    Q.π.div(Math.pow(2, 1 + innerQ.parentSpan - innerQ.iteration))
-                );
-            });
+        Q.comment("growDown staircase");
+        Q.growDown(q => {
+            q.all().x();
+        });
+        Q.barrier();
+        
+        Q.comment("shrinkDown staircase");
+        Q.shrinkDown(q => {
+            q.all().x();
+        });
+        Q.barrier();
+        
+        Q.comment("shrinkUp staircase");
+        Q.shrinkUp(q => {
+            q.all().x();
+        });
+        Q.barrier();
+        
+        Q.comment("growUp staircase");
+        Q.growUp(q => {
+            q.all().x();
         });
         Q.all().measure();
     });
     console.log(c.compile());
 }
 
+
 // Test 6: Pipeline execution
 export function testPipeline() {
     console.log("Test 6: Pipeline");
-    const p = pipeline(3, {
-        input: "101",
-        output: "readEach"
-    }, Q => {
-        Q.comment("Core algorithm step");
-        Q.bit(0).cx(Q.bit(1));
-    });
+    const p = pipeline(
+        { qubits: 3 }, 
+        "101", 
+        Q => Q.all().measure(),
+        Q => {
+            Q.comment("Core algorithm step");
+            Q.bit(0).cx(Q.bit(1));
+        }
+    );
     console.log(p.compile());
 }
+
 
 // Test 7: Bench default sample compilation
 export function testBenchSample() {
