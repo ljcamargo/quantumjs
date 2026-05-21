@@ -115,41 +115,88 @@ export class Circuit {
     return this;
   }
 
-  ascend(step: number = 1, callback: (q: Circuit) => void) {
+  // Top-Aligned Loops (offset is 0, start matches top qubit index 0)
+  growUp(stepOrCallback: number | ((q: Circuit) => void), callback?: (q: Circuit) => void) {
+    const step = typeof stepOrCallback === 'number' ? stepOrCallback : 1;
+    const cb = typeof stepOrCallback === 'function' ? stepOrCallback : callback!;
     const span = this.qubitCount;
-    for (let i = 0; i < span; i += step) {
-      const size = i + 1;
-      const subCircuit = new Circuit({ qubits: size, version: this.program.version });
-      subCircuit.program.body = [];
-      subCircuit.parentSpan = span;
-      subCircuit.offset = this.offset + i;
-      subCircuit.iteration = i;
-      subCircuit.inverseSpan = (1 + span) - size;
-      
-      callback(subCircuit);
-      
-      this.mergeSubCircuit(subCircuit, i);
-    }
-    return this;
-  }
 
-  descend(callback: (q: Circuit) => void) {
-    const span = this.qubitCount;
-    for (let i = span - 1; i >= 0; i--) {
-      const size = i + 1;
+    for (let size = 1; size <= span; size += step) {
       const subCircuit = new Circuit({ qubits: size, version: this.program.version });
       subCircuit.program.body = [];
       subCircuit.parentSpan = span;
       subCircuit.offset = this.offset + 0;
-      subCircuit.iteration = i;
+      subCircuit.iteration = size - 1; // Absolute active qubit index
       subCircuit.inverseSpan = (1 + span) - size;
       
-      callback(subCircuit);
+      cb(subCircuit);
       
       this.mergeSubCircuit(subCircuit, 0);
     }
     return this;
   }
+
+  shrinkUp(stepOrCallback: number | ((q: Circuit) => void), callback?: (q: Circuit) => void) {
+    const step = typeof stepOrCallback === 'number' ? stepOrCallback : 1;
+    const cb = typeof stepOrCallback === 'function' ? stepOrCallback : callback!;
+    const span = this.qubitCount;
+
+    for (let size = span; size >= 1; size -= step) {
+      const subCircuit = new Circuit({ qubits: size, version: this.program.version });
+      subCircuit.program.body = [];
+      subCircuit.parentSpan = span;
+      subCircuit.offset = this.offset + 0;
+      subCircuit.iteration = size - 1; // Absolute active qubit index
+      subCircuit.inverseSpan = (1 + span) - size;
+      
+      cb(subCircuit);
+      
+      this.mergeSubCircuit(subCircuit, 0);
+    }
+    return this;
+  }
+
+  // Bottom-Aligned Loops (offset changes so end matches bottom qubit index span-1)
+  growDown(stepOrCallback: number | ((q: Circuit) => void), callback?: (q: Circuit) => void) {
+    const step = typeof stepOrCallback === 'number' ? stepOrCallback : 1;
+    const cb = typeof stepOrCallback === 'function' ? stepOrCallback : callback!;
+    const span = this.qubitCount;
+
+    for (let size = 1; size <= span; size += step) {
+      const subCircuit = new Circuit({ qubits: size, version: this.program.version });
+      subCircuit.program.body = [];
+      subCircuit.parentSpan = span;
+      subCircuit.offset = this.offset + (span - size);
+      subCircuit.iteration = span - size; // Absolute active qubit index (offset relative to parent)
+      subCircuit.inverseSpan = (1 + span) - size;
+      
+      cb(subCircuit);
+      
+      this.mergeSubCircuit(subCircuit, span - size);
+    }
+    return this;
+  }
+
+  shrinkDown(stepOrCallback: number | ((q: Circuit) => void), callback?: (q: Circuit) => void) {
+    const step = typeof stepOrCallback === 'number' ? stepOrCallback : 1;
+    const cb = typeof stepOrCallback === 'function' ? stepOrCallback : callback!;
+    const span = this.qubitCount;
+
+    for (let size = span; size >= 1; size -= step) {
+      const subCircuit = new Circuit({ qubits: size, version: this.program.version });
+      subCircuit.program.body = [];
+      subCircuit.parentSpan = span;
+      subCircuit.offset = this.offset + (span - size);
+      subCircuit.iteration = span - size; // Absolute active qubit index (offset relative to parent)
+      subCircuit.inverseSpan = (1 + span) - size;
+      
+      cb(subCircuit);
+      
+      this.mergeSubCircuit(subCircuit, span - size);
+    }
+    return this;
+  }
+
 
   loop(times: number, callback: (q: Circuit) => void) {
     for (let i = 0; i < times; i++) {
@@ -157,6 +204,8 @@ export class Circuit {
     }
     return this;
   }
+
+
 
   private mergeSubCircuit(sub: Circuit, offset: number) {
     sub.program.body.forEach(stmt => {
@@ -553,46 +602,65 @@ export function div(left: AST.Expression, right: number | AST.Expression): AST.E
 }
 
 // Pipeline Abstraction (Parity with QuantumKT Flow)
-export interface PipelineConfig {
+export interface PipelineConfigObj {
   input?: string | (number | string)[] | ((q: Circuit) => void) | {
     source: string | (number | string)[] | ((q: Circuit) => void);
     endian?: 'big' | 'little';
   };
-  output?: 'readEach' | 'readToOne' | {
-    format: 'readEach' | 'readToOne';
+  output?: ((q: Circuit) => void) | {
+    format?: 'readEach' | 'readToOne' | ((q: Circuit) => void);
     postProcess?: (results: Record<string, number>) => any;
   };
 }
 
 export class Pipeline {
   private circuit: Circuit;
-  private inputConfig?: any;
-  private outputConfig?: any;
+  private postProcessCallback?: ((results: Record<string, number>) => any) | undefined;
 
-  constructor(qubits: number, config: PipelineConfig, callback: (q: Circuit) => void) {
-    this.circuit = new Circuit({ qubits });
-    this.inputConfig = config.input;
-    this.outputConfig = config.output;
+  constructor(
+    configOrCircuit: CircuitConfig | Circuit,
+    input?: PipelineConfigObj['input'],
+    output?: PipelineConfigObj['output'],
+    callback?: (q: Circuit) => void
+  ) {
+    if (configOrCircuit instanceof Circuit) {
+      this.circuit = configOrCircuit;
+    } else {
+      this.circuit = new Circuit(configOrCircuit);
+    }
 
     // 1. Process Input prep stage
-    if (this.inputConfig) {
-      if (typeof this.inputConfig === 'object' && 'source' in this.inputConfig) {
-        this.circuit.input(this.inputConfig.source, { endian: this.inputConfig.endian });
+    if (input) {
+      if (typeof input === 'function') {
+        input(this.circuit);
+      } else if (typeof input === 'object' && 'source' in input) {
+        const options: { endian?: 'big' | 'little' } = {};
+        if (input.endian) options.endian = input.endian;
+        this.circuit.input(input.source, options);
       } else {
-        this.circuit.input(this.inputConfig);
+        this.circuit.input(input as any);
       }
     }
 
+
     // 2. Process Core Algorithm stage
-    callback(this.circuit);
+    if (callback) {
+      callback(this.circuit);
+    }
 
     // 3. Process Output measurement stage
-    if (this.outputConfig) {
-      const format = typeof this.outputConfig === 'object' ? this.outputConfig.format : this.outputConfig;
-      if (format === 'readEach') {
-        this.circuit.all().measure();
-      } else if (format === 'readToOne') {
-        this.circuit.first().measure();
+    if (output) {
+      if (typeof output === 'function') {
+        output(this.circuit);
+      } else if (typeof output === 'object') {
+        this.postProcessCallback = output.postProcess;
+        if (typeof output.format === 'function') {
+          output.format(this.circuit);
+        } else if (output.format === 'readEach') {
+          this.circuit.all().measure();
+        } else if (output.format === 'readToOne') {
+          this.circuit.first().measure();
+        }
       }
     }
   }
@@ -614,18 +682,19 @@ export class Pipeline {
       results = simulator.probabilities();
     });
 
-    if (this.outputConfig && typeof this.outputConfig === 'object' && this.outputConfig.postProcess) {
-      return this.outputConfig.postProcess(results);
+    if (this.postProcessCallback) {
+      return this.postProcessCallback(results);
     }
     return results;
   }
 }
 
 export function pipeline(
-  qubits: number,
-  config: PipelineConfig,
-  callback: (q: Circuit) => void
+  configOrCircuit: CircuitConfig | Circuit,
+  input?: PipelineConfigObj['input'],
+  output?: PipelineConfigObj['output'],
+  callback?: (q: Circuit) => void
 ): Pipeline {
-  return new Pipeline(qubits, config, callback);
+  return new Pipeline(configOrCircuit, input, output, callback);
 }
 
