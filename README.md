@@ -161,4 +161,4 @@ const myCircuit = circuit({ qubits: 3 }, Q => {
 ---
 
 ## License
-MIT
+Apache 2.0
