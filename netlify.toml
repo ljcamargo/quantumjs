@@ -1,0 +1,9 @@
+[build]
+  base = ""
+  command = "bun install && bun x tsc --project packages/quantum-core && bun run build --filter bench"
+  publish = "apps/bench/.next"
+
+
+# Enables Next.js serverless functions and optimization on Netlify
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
