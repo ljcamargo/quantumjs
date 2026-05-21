@@ -1,0 +1,7 @@
+# apps/bench/netlify.toml
+[build]
+  command = "cd ../.. && bun install && bun x tsc --project packages/quantum-core && bun run build --filter bench"
+  publish = ".next"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
