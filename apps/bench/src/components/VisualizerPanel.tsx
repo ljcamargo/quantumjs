@@ -10,28 +10,28 @@ export const VisualizerPanel = ({ qasm }: { qasm: string }) => {
 
   const headerAction = (
     <div className="flex items-center gap-1">
-      <button 
+      <button
         onClick={() => setFitMode('both')}
         className={`p-1 rounded transition-colors ${fitMode === 'both' ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-500 hover:text-slate-300'}`}
         title="Fit Both"
       >
         <Maximize size={10} />
       </button>
-      <button 
+      <button
         onClick={() => setFitMode('width')}
         className={`p-1 rounded transition-colors ${fitMode === 'width' ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-500 hover:text-slate-300'}`}
         title="Fit Width"
       >
         <ArrowLeftRight size={10} />
       </button>
-      <button 
+      <button
         onClick={() => setFitMode('height')}
         className={`p-1 rounded transition-colors ${fitMode === 'height' ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-500 hover:text-slate-300'}`}
         title="Fit Height"
       >
         <ArrowUpDown size={10} />
       </button>
-      <button 
+      <button
         onClick={() => setFitMode('none')}
         className={`p-1 rounded transition-colors ${fitMode === 'none' ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-500 hover:text-slate-300'}`}
         title="Manual Zoom"
@@ -52,9 +52,9 @@ export const VisualizerPanel = ({ qasm }: { qasm: string }) => {
     <Panel title="Circuit Visualizer" icon={<Cpu size={14} />} className="h-full" headerAction={headerAction}>
       <div className="flex-1 flex items-center justify-center bg-black/20 overflow-auto p-4 relative h-full min-h-[150px]">
         {qasm ? (
-          <QuirkVis 
-            qasm={qasm} 
-            theme={themes.night} 
+          <QuirkVis
+            qasm={qasm}
+            theme={themes.night}
             fitWidth={fitMode === 'both' || fitMode === 'width'}
             fitHeight={fitMode === 'both' || fitMode === 'height'}
             zoom={zoom}

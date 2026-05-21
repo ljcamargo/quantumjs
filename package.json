@@ -24,5 +24,8 @@
   "workspaces": [
     "packages/*",
     "apps/*"
-  ]
+  ],
+  "devDependencies": {
+    "terser-webpack-plugin": "^5.6.0"
+  }
 }
