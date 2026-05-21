@@ -1,6 +1,6 @@
 [build]
   base = "apps/bench"
-  command = "cd ../.. && bun install && bun x tsc --project packages/quantum-core && cd apps/bench && bun run build"
+  command = "cd ../.. && bun install && bun x tsc --project packages/quantumjs && cd apps/bench && bun run build"
   publish = ".next"
 
 [[plugins]]

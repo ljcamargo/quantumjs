@@ -4,8 +4,8 @@ set -e
 
 echo "=== Aggressively Rebuilding QuantumJS Monorepo ==="
 
-echo "1. Building packages/quantum-core..."
-cd packages/quantum-core
+echo "1. Building packages/quantumjs..."
+cd packages/quantumjs
 # Remove old build
 rm -rf dist
 npx tsc
@@ -17,7 +17,7 @@ cd apps/bench
 rm -rf .next
 rm -rf node_modules/.cache
 # Delete the local symlink to force a clean link recreate
-rm -rf node_modules/quantum-core
+rm -rf node_modules/quantumjs
 
 echo "3. Re-linking and installing bench dependencies..."
 bun install --force

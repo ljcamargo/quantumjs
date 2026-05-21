@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Zap, Play } from 'lucide-react';
 // @ts-ignore
 import QuantumCircuit from 'quantum-circuit';
-import * as Quantum from 'quantum-core';
+import * as Quantum from 'quantumjs';
 
 import { EditorPanel, QasmPanel, ResultsPanel, ErrorDisplay } from '../components/Panels';
 import { VisualizerPanel } from '../components/VisualizerPanel';
