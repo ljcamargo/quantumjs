@@ -26,5 +26,5 @@ next-env.d.ts
 # Scratch and test files
 test_qc_compat.js
 test_qc_compat_v2.js
-packages/quantum-core/src/test_verify.ts
+packages/quantumjs/src/test_verify.ts
 test.html

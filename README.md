@@ -15,9 +15,9 @@ An interactive, real-time IDE to write, visualize, and simulate circuits with Qu
 Add QuantumJS to your JavaScript/TypeScript project:
 
 ```bash
-npm install quantum-core
+npm install quantumjs
 # or
-bun add quantum-core
+bun add quantumjs
 ```
 
 ---
@@ -28,7 +28,7 @@ bun add quantum-core
 Create a simple Bell State circuit and compile it to OpenQASM:
 
 ```javascript
-import { circuit } from 'quantum-core';
+import { circuit } from 'quantumjs';
 
 const c = circuit({ qubits: 2 }, Q => {
   Q.bit(0).h();
@@ -107,7 +107,7 @@ Q.shrinkUp(q => {
 A **Pipeline** acts as a structured "Job" wrapping input preparation, core algorithm steps, output mapping, and post-processing into a single promise-like object:
 
 ```javascript
-import { pipeline } from 'quantum-core';
+import { pipeline } from 'quantumjs';
 
 const job = pipeline(
   { qubits: 3 },
