@@ -1,270 +1,164 @@
 # <img src="assets/logo_small.png" align="center" width="40" height="40" /> QuantumJS
 [![GitHub version](https://badge.fury.io/gh/lsjcp%2Fquantumjs.svg)](https://badge.fury.io/gh/lsjcp%2Fquantumjs)
 
-This is an open source library to ease the creation of complex **QASM 2.0** quantum circuits (algorithms) with the simplicity of javascript chaining patterns and other high-level language features.
+A modern, highly expressive Quantum Circuit Domain Specific Language (DSL) and AST-driven compiler for JavaScript and TypeScript.
 
-**QuantumJS** generates compliant **Quantum Assembly Language 2.0** capable of being executed on a real five qubits quantum processor from **IBM Quantum Experience** or simulate the execution of circuits other topologies on this platform.
+**QuantumJS** generates compliant, high-performance **OpenQASM 3.0** (with OpenQASM 2.0 compatibility) capable of being executed on quantum processors or local statevector simulators. It features fluent chaining patterns, context-aware loop scopes, and structural pipelines to simplify the creation of complex quantum algorithms.
 
-The aim of this library is to provide a framework to bind current classical computing with quantum computing beyond experimental levels.
+### 🌐 Live Demo & Bench
+An interactive, real-time IDE to write, visualize, and simulate circuits with QuantumJS is available for testing at: **[quantumjs.netlify.app](https://quantumjs.netlify.app)**
 
-To know more and get access to the quantum processor and platform visit [IBM Quantum Experience](https://quantumexperience.ng.bluemix.net/qstage/#).
+---
 
-## Usage
+## Installation
 
-### Setup
+Add QuantumJS to your JavaScript/TypeScript project:
 
-Include quantum.js on your project.
-
-Initialize an **IDEAL** quantum processor with unlimited qubits and unlimited interactions.
-```javascript
-var Q = new QuantumJS();
+```bash
+npm install quantum-core
+# or
+bun add quantum-core
 ```
 
-Or initialize with the 5-qubit IBMQX2.
+---
+
+## Quick Start
+
+### 1. Basic Circuit
+Create a simple Bell State circuit and compile it to OpenQASM:
+
 ```javascript
-var Q = new QuantumJS('ibmqx2');
+import { circuit } from 'quantum-core';
+
+const c = circuit({ qubits: 2 }, Q => {
+  Q.bit(0).h();
+  Q.bit(0).cx(Q.bit(1));
+  Q.all().measure();
+});
+
+const qasm3 = c.compile(); // Default: OpenQASM 3.0
+const qasm2 = c.compile({ version: '2.0' }); // Compatibility Mode
 ```
 
-You may initialize with a custom topology:
+---
+
+## Key Abstractions
+
+### A. Qubits & Registers
+Select qubits fluently by index, slices, or helpers:
 ```javascript
-var Q = new QuantumJS({
-  'name': 'ibmqx3',
-  'registries': [
-    {
-      'kind':'quantum',
-      'name':'q',
-      'length': 5,
-      'coupling_map': [[0,1],[0,2],[1,2],[3,2],[3,4],[4,2]],
-      'topology': [[1,2],[2],[],[2,4],[2]]
-    },
-    {
-      'kind':'classical',
-      'name':'c',
-      'length': 5
+Q.bit(0);       // Select qubit 0
+Q.first();      // Select the first qubit (index 0)
+Q.last();       // Select the last qubit (index span - 1)
+Q.all();        // Selects all qubits in the active scope
+Q.bits([0, 2]); // Selects multiple qubits
+```
+
+### B. Flexible Inputs (`.input()`)
+The `input()` method prepares the initial quantum state using binary strings, Pauli strings, or gate arrays, automatically skipping ground states (`0` or `I`) to keep QASM output clean.
+```javascript
+Q.input("101");                // Big-endian binary input (X on q[0] and q[2])
+Q.input("101", { endian: 'little' }); // Little-endian binary input (X on q[0] and q[2] reversed)
+Q.input("XXIZI");              // Pauli string input (skips Identity 'I')
+Q.input(['X', 'H', 'S']);      // Explicit gate list array
+```
+
+### C. Quantum Gates
+Apply standard gates using chaining syntax:
+```javascript
+// Single Qubit Gates
+Q.bit(0).h().x().y().z().s().s_().t().t_().id().reset();
+
+// Rotation Gates
+Q.bit(0).u([0.3, 0.2, 0.1]);
+
+// Controlled Gates
+Q.bit(0).cx(Q.bit(1)); // CNOT
+Q.bit(0).cy(Q.bit(1));
+Q.bit(0).cz(Q.bit(1));
+Q.bit(0).cp(Q.bit(1), Q.π.div(2)); // Controlled Phase
+Q.bit(0).ch(Q.bit(1));             // Controlled Hadamard
+
+// Multi-Controlled Gates
+Q.bit(0).ccx(Q.bit(1), Q.bit(2)); // Toffoli / CCX
+```
+
+### D. Scoped Staircase Layouts
+These loops dynamically manage sizes, offsets, and contextual properties (`first()`, `last()`, and `iteration` absolute qubit index) to create "climbing" staircase circuits in space and time.
+
+*   **`growUp` / `growDown`**: Increase sub-circuit sizes (growing) aligned to the top or bottom of the qubit registers.
+*   **`shrinkUp` / `shrinkDown`**: Decrease sub-circuit sizes (shrinking) aligned to the top or bottom.
+
+```javascript
+// Beautiful QFT implementation using scoped layout loops
+Q.shrinkUp(q => {
+  q.shrinkDown(r => {
+    if (r.iteration < q.iteration) {
+      r.last().cp(r.first(), Q.π.div(2 ** (1 + q.iteration - r.iteration)));
     }
-  ]
+  });
+  q.last().h().brk();
 });
 ```
 
-### Qubits
+---
 
-Select a qubit by its index number
-```javascript
-Q.bit(0);
-```
-You can also specify a q-register name for the qubit array.
-```javascript
-Q.bit(0, 'a');
-```
-The default qubit register name is ‘q’
+## Pipeline Abstraction
+A **Pipeline** acts as a structured "Job" wrapping input preparation, core algorithm steps, output mapping, and post-processing into a single promise-like object:
 
-If no index is specified, the entire 'q' register array is returned
 ```javascript
-Q.bit();
-```
+import { pipeline } from 'quantum-core';
 
-When using an IDEAL processor (no topology) qubits and q-registers are created on demand if they do not exist.
+const job = pipeline(
+  { qubits: 3 },
+  "101",                    // Input stage: binary state prep
+  Q => Q.all().measure(),   // Output stage: standard measurements
+  Q => {
+    // Core Algorithm Stage
+    Q.comment("Executing main steps");
+    Q.bit(0).cx(Q.bit(1));
+  }
+);
 
-When a topology is specified, qubits and q-registers must be within the predefined configuration or an error is thrown.
-
-### Quantum Gates
-
-After selecting a qubit, you can apply a quantum gate (or transformation);
-
-#### Gates
-
-**Pauli X (bit-flip, not)**
-```javascript
-Q.bit(0).x();
-```
-**Pauli Y**
-```javascript
-Q.bit(0).y();
-```
-**Pauli Z**
-```javascript
-Q.bit(0).z();
-```
-**Idle Gate (Identity)**
-```javascript
-Q.bit(0).id();
-```
-**Hadamard Gate**
-```javascript
-Q.bit(0).h();
-```
-**Square Root Gate (S) and conjugate (S†, SDG)**
-```javascript
-Q.bit(0).s(); //S
-Q.bit(0).s_(); //S conjugate
+const qasm = job.compile();
 ```
 
-**Non-Clifford T and conjugate (T†, TDG)**
+---
+
+## Measuring & Basis Changes
+Easily measure qubits to classical registers. If no target is specified for a single qubit, it defaults to the first classical register index `c[0]`.
+
 ```javascript
-Q.bit(0).t(); //T
-Q.bit(0).t_(); //T conjugate
+Q.bit(0).measure();     // Measures q[0] to c[0]
+Q.bit(1).measureTo(0);  // Measures q[1] to c[0] explicitly
+Q.all().measure();      // Measures the whole register (one-to-one mapping)
 ```
 
-**Rotation Gates (U)**
-You must provide rotation angles in an array (lambda, phi, theta)
+Change measurement basis dynamically ( Bloch tomography helpers ):
 ```javascript
-// lambda
-Q.bit(0).u( [Q.π.div(2)] );     // u1(pi/2) q[0]; 
-// lambda, phi
-Q.bit(0).u( [Q.π.div(2), Q.π.div(4)] ); // u2(pi/2, pi/4) q[0]; 
-// lambda, phi, theta
-Q.bit(0).u( [0.3, 0.2, 0.1] );    // u3(0.3, 0.2, 0.1) q[0]; 
+Q.bit(0).measureX(); // Tomography in X basis (H + measure)
+Q.bit(0).measureY(); // Tomography in Y basis (SDG + H + measure)
+Q.bit(0).measureW(); // Tomography in W basis (S + H + T + H + measure)
 ```
 
-#### Controlled Gates
-**CNOT or CX**
+---
+
+## Custom Reusable Routines
+Extend the DSL with your own custom, chainable functions:
+
 ```javascript
-Q.bit(0).cnot(1); // apply x gate to q(1) when q(0) is |1> 
-Q.bit(0).cx(1); // another name for the same function
-```
-**CY, CZ**
-```javascript
-Q.bit(1).cy(2); // apply y gate to q(2) when q(1) is |1> 
-Q.bit(3).cz(2); // apply z gate to q(2) when q(3) is |1> 
-```
+const myCircuit = circuit({ qubits: 3 }, Q => {
+  // Define custom function
+  Q.addFunction('myBellState', (q, control, target) => {
+    q.bit(control).h().cx(q.bit(target));
+  });
 
-Controlled gates are limited on real devices. When using real or non-ideal topology a compile error is thrown if the interaction is not allowed.
-
-
-### Measuring
-
-Measuring qubits to specific classical registers.
-```javascript
-Q.bit(2).measureTo(2); // measure q[2] to c[2], the default register is ‘c’
-Q.bit(2).measure(); // measure q[2] to c[2], index of classical bit will be inferred from qubit
-Q.bit(2).measureTo(0,’c2’); // measure q[2] to c2[0]
-```
-
-Measuring the entire array. Qubits and Classical array must be of the same size or error is thrown
-```javascript
-Q.bit().measure(); // measure all qubits from q to c
-// this is equal to..
-Q.bit(0).measureTo(0);
-Q.bit(1).measureTo(1);
-Q.bit(2).measureTo(2);
-// and so on...
-```
-
-Rotate to V, W, X, Y or Z and measure (to simplify bloch tomography)
-```javascript
-Q.bit(2).measureX(2); 
-// equal to: Q.bit(2).h().measureTo(2);
-
-Q.bit(2).measureY(2); 
-// equal to: Q.bit(2).s_().h().measureTo(2);
-
-Q.bit(2).measureW(2); 
-// equal to: Q.bit(2).s().h().t().h().measureTo(2);
-```
-
-### Compile
-
-Get the QASM2.0 code for on IBM Quantum Experience on a variable.
-```javascript
-var qasm = Q.compile(); 
-```
-
-You may also use a callback pattern for compiling
-```javascript
-Q.compile(function(str) {
-  $('div').text(str); // In this examples we use jQuery to write the qasm code to a div
-  hljs.initHighlightingOnLoad(); //and highlight.js to highlight the code
+  // Call it fluently from the function proxy
+  Q.fnc.myBellState(0, 1);
 });
 ```
 
-## Custom Functions
-You may create and import custom routines and use it in the same chaining pattern.
+---
 
-#### Quantum Fourier Transform (n-bits)
-
-```javascript
-function qft(bits, values) {
-  //Q variable will be prepended to the function after adding it
-  if (bits && bits instanceof Object) {
-    values = bits; bits = values.length;
-  }
-  Q.comment(bits + "-bit Quantum Fourier Transform");
-  if (values) Q.init(values);
-  Q.barrier().brk();
-  for (var i = 0; i < bits; i++) {
-    for (var j = 0; j < i; j++) {
-      Q.bit(i).cu1(Q.π.div(Math.pow(2, i-j)), j);
-    }
-    Q.bit(i).h().brk();
-  }
-  //The appended function will return Q variable
-};
-
-var values = [1,0,1,0,1,0,1,0];
-var Q = new QuantumJS();
-Q.addFunction('qft', qft); //add the function to Q
-Q.fnc.qft(values); //and call it, the function will return Q.
-Q.bit().h();
-Q.bit().measure();
-Q.compile(function(compiled) {
-  console.log(compiled);
-});
-```
-
-###Other Custom Functions Examples
-#### Inverse Quantum Fourier Transform (n-bits)
-
-```javascript
-function iqft(bits, values) {
-  if (bits && bits instanceof Object) {
-    values = bits; bits = values.length;
-  }
-  Q.comment(bits + "-bit Inverse Quantum Fourier Transform");
-  if (values) Q.init(values);
-  Q.barrier().brk();
-  for (var i = 0; i < bits; i++) {
-    for (var j = 0; j < i; j++) {
-      Q.bit(i).u([Q.π.div(Math.pow(2, i-j))])._if(Q.cbit('c'+(i-1)));
-    }
-    Q.bit(i).h().brk();
-    Q.bit(i).measureTo(0,'c'+i);
-  }
-};
-
-//IQFT FROM A UNIFORM SUPERPOSITION OF 8-qubits
-var values = ['+','+','+','+','+','+','+','+'];
-var Q = new QuantumJS();
-Q.addFunction('iqft', iqft);
-Q.fnc.iqft(values);
-var qasm = Q.compile();
-console.log(qasm);
-```
-
-### N-bit Control X
-
-```javascript
-function getNCXSpannedArray(arr) {
-  var span = [];
-  span.push(arr[0]); span.push(arr[1]); span.push('');
-  for (var i = 2; i < arr.length; i++) { span.push(arr[i]); span.push(''); }
-  return span;
-}
-
-var values = [1,1,1,1];
-var Q = new QuantumJS();
-var span = getNCXSpannedArray(values);
-
-Q.addFunction('ncx', n => {
-  for (var i = 0; i <= n; i+=2) Q.bit(i).ccx(i+1, i+2);
-  var l = (n % 2 == 0) ? 0 : 1;
-  for (var i = (n-l); i >= 2; i-=2) Q.bit(i-2).ccx(i-1, i);
-});
-Q.comment("Set Initial State");
-Q.init(span);
-Q.barrier().brk();
-Q.fnc.ncx(values.length);
-Q.bit().measure();
-
-var qasm = Q.compile();
-console.log(qasm);
-```
+## License
+MIT
