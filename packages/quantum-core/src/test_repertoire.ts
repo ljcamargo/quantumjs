@@ -60,32 +60,33 @@ export function testIQFT() {
 export function testScopedQFT() {
     console.log("Test 5: Scoped Layout Visualizer (Staircases)");
     const c = circuit({ qubits: 3 }, Q => {
-        Q.comment("growDown staircase");
-        Q.growDown(q => {
-            q.all().x();
+        Q.comment("growUp staircase");
+        Q.growUp(q => {
+            q.first().cx(q.last());
         });
         Q.barrier();
         
-        Q.comment("shrinkDown staircase");
-        Q.shrinkDown(q => {
-            q.all().x();
+        Q.comment("growDown staircase");
+        Q.growDown(q => {
+            q.first().cx(q.last());
         });
         Q.barrier();
         
         Q.comment("shrinkUp staircase");
         Q.shrinkUp(q => {
-            q.all().x();
+            q.first().cx(q.last());
         });
         Q.barrier();
         
-        Q.comment("growUp staircase");
-        Q.growUp(q => {
-            q.all().x();
+        Q.comment("shrinkDown staircase");
+        Q.shrinkDown(q => {
+            q.first().cx(q.last());
         });
         Q.all().measure();
     });
     console.log(c.compile());
 }
+
 
 
 // Test 6: Pipeline execution
