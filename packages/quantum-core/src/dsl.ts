@@ -116,7 +116,7 @@ export class Circuit {
   }
 
   // Top-Aligned Loops (offset is 0, start matches top qubit index 0)
-  growUp(stepOrCallback: number | ((q: Circuit) => void), callback?: (q: Circuit) => void) {
+  growDown(stepOrCallback: number | ((q: Circuit) => void), callback?: (q: Circuit) => void) {
     const step = typeof stepOrCallback === 'number' ? stepOrCallback : 1;
     const cb = typeof stepOrCallback === 'function' ? stepOrCallback : callback!;
     const span = this.qubitCount;
@@ -157,7 +157,7 @@ export class Circuit {
   }
 
   // Bottom-Aligned Loops (offset changes so end matches bottom qubit index span-1)
-  growDown(stepOrCallback: number | ((q: Circuit) => void), callback?: (q: Circuit) => void) {
+  growUp(stepOrCallback: number | ((q: Circuit) => void), callback?: (q: Circuit) => void) {
     const step = typeof stepOrCallback === 'number' ? stepOrCallback : 1;
     const cb = typeof stepOrCallback === 'function' ? stepOrCallback : callback!;
     const span = this.qubitCount;
@@ -176,6 +176,7 @@ export class Circuit {
     }
     return this;
   }
+
 
   shrinkDown(stepOrCallback: number | ((q: Circuit) => void), callback?: (q: Circuit) => void) {
     const step = typeof stepOrCallback === 'number' ? stepOrCallback : 1;
