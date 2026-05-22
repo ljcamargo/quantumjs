@@ -105,7 +105,7 @@ export default function Playground() {
           </button>
 
           <a
-            href="https://quantumjs.netlify.app"
+            href="https://quantumjsdocs.netlify.app/"
             target="_blank"
             rel="noopener noreferrer"
             className="h-7 ml-2 px-3 bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white text-[10px] font-bold rounded transition-all flex items-center gap-1.5"
