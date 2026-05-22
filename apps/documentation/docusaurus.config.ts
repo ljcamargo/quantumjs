@@ -11,7 +11,7 @@ const config: Config = {
     v4: true,
   },
 
-  url: 'https://quantumjs.netlify.app',
+  url: 'https://quantumjsdocs.netlify.app',
   baseUrl: '/',
 
   organizationName: 'ljcamargo',
