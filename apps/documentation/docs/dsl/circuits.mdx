@@ -8,7 +8,7 @@ sidebar_label: Circuits
 A circuit is the top-level container for your quantum program. You create one with the `circuit()` function, passing a config object and a builder callback.
 
 ```javascript
-import { circuit } from 'quantumjs';
+import { circuit } from '@quantum-js/dsl';
 
 const c = circuit({ qubits: 2 }, Q => {
   Q.bit(0).h();

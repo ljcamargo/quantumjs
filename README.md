@@ -1,5 +1,5 @@
 # <img src="assets/logo_small.png" align="center" width="40" height="40" /> QuantumJS
-[![GitHub version](https://badge.fury.io/gh/ljcamargo%2Fquantumjs.svg)](https://badge.fury.io/gh/ljcamargo%2Fquantumjs)
+[![npm version](https://badge.fury.io/js/%40quantum-js%2Fdsl.svg)](https://badge.fury.io/js/%40quantum-js%2Fdsl)
 
 A modern, highly expressive Quantum Circuit Domain Specific Language (DSL) and AST-driven compiler for JavaScript and TypeScript.
 
@@ -15,9 +15,9 @@ An interactive, real-time IDE to write, visualize, and simulate circuits with Qu
 Add QuantumJS to your JavaScript/TypeScript project:
 
 ```bash
-npm install quantumjs
+npm install @quantum-js/dsl
 # or
-bun add quantumjs
+bun add @quantum-js/dsl
 ```
 
 ---
@@ -28,7 +28,7 @@ bun add quantumjs
 Create a simple Bell State circuit and compile it to OpenQASM:
 
 ```javascript
-import { circuit } from 'quantumjs';
+import { circuit } from '@quantum-js/dsl';
 
 const c = circuit({ qubits: 2 }, Q => {
   Q.bit(0).h();
@@ -107,7 +107,7 @@ Q.shrinkUp(q => {
 A **Pipeline** acts as a structured "Job" wrapping input preparation, core algorithm steps, output mapping, and post-processing into a single promise-like object:
 
 ```javascript
-import { pipeline } from 'quantumjs';
+import { pipeline } from '@quantum-js/dsl';
 
 const job = pipeline(
   { qubits: 3 },

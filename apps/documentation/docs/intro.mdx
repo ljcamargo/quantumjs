@@ -27,15 +27,15 @@ An interactive IDE to write, visualize, and simulate circuits is available at **
 ## Installation
 
 ```bash
-npm install quantumjs
+npm install @quantum-js/dsl
 # or
-bun add quantumjs
+bun add @quantum-js/dsl
 ```
 
 ## Quick Example
 
 ```javascript
-import { circuit } from 'quantumjs';
+import { circuit } from '@quantum-js/dsl';
 
 const c = circuit({ qubits: 2 }, Q => {
   Q.bit(0).h();

@@ -46,7 +46,7 @@ Q.bit(0).swap(Q.bit(1)) // SWAP
 ### Controlled Phase
 
 ```javascript
-import { circuit } from 'quantumjs';
+import { circuit } from '@quantum-js/dsl';
 
 circuit({ qubits: 2 }, Q => {
   Q.bit(0).cp(Q.bit(1), Q.π.div(2)); // CP with θ = π/2
@@ -80,7 +80,7 @@ Q.π.div(2)   // π/2
 Q.π.div(4)   // π/4
 
 // Or using the standalone helpers:
-import { pi, div } from 'quantumjs';
+import { pi, div } from '@quantum-js/dsl';
 div(pi, 2)   // π/2
 ```
 
