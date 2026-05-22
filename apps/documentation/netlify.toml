@@ -1,0 +1,7 @@
+[build]
+  base = "apps/documentation"
+  command = "bun run build"
+  publish = "build"
+
+[build.environment]
+  NODE_VERSION = "20"

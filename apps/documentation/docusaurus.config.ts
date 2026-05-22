@@ -5,7 +5,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 const config: Config = {
   title: 'QuantumJS',
   tagline: 'A fluent DSL and OpenQASM compiler for JavaScript and TypeScript',
-  favicon: 'img/favicon.ico',
+  favicon: 'image/favicon.ico',
 
   future: {
     v4: true,
@@ -42,7 +42,7 @@ const config: Config = {
   ],
 
   themeConfig: {
-    image: 'img/docusaurus-social-card.jpg',
+    image: 'image/docusaurus-social-card.jpg',
     colorMode: {
       respectPrefersColorScheme: true,
     },
@@ -50,7 +50,7 @@ const config: Config = {
       title: 'QuantumJS',
       logo: {
         alt: 'QuantumJS',
-        src: 'img/logo.svg',
+        src: 'image/logo.svg',
       },
       items: [
         {
@@ -61,7 +61,7 @@ const config: Config = {
         },
         {
           href: 'https://quantumjs.netlify.app',
-          label: 'Live Demo',
+          label: 'Try Online',
           position: 'left',
         },
         {
@@ -85,12 +85,12 @@ const config: Config = {
         {
           title: 'More',
           items: [
-            { label: 'Live Demo', href: 'https://quantumjs.netlify.app' },
+            { label: 'Try Online', href: 'https://quantumjs.netlify.app' },
             { label: 'GitHub', href: 'https://github.com/ljcamargo/quantumjs' },
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} QuantumJS. Built with Docusaurus.`,
+      copyright: `Copyright © ${new Date().getFullYear()} Luis J Camargo. Built with Docusaurus.`,
     },
     prism: {
       theme: prismThemes.github,
