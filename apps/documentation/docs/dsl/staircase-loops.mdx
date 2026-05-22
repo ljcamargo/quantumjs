@@ -1,0 +1,88 @@
+---
+sidebar_position: 6
+---
+
+# Staircase Loops
+
+Staircase loops are one of QuantumJS's most powerful features. They create a series of sub-circuits of increasing or decreasing size, each offset to align to the top or bottom of the qubit register — producing the "climbing staircase" patterns that appear in algorithms like QFT.
+
+Each iteration receives a sub-circuit `q` that knows its own size, offset, and position within the parent circuit. The selectors `q.first()`, `q.last()`, and `q.all()` resolve relative to that sub-circuit's scope.
+
+## The Four Variants
+
+| Method | Size | Alignment |
+|--------|------|-----------|
+| `growDown` | 1 → n | Top-aligned (offset = 0) |
+| `shrinkUp` | n → 1 | Top-aligned (offset = 0) |
+| `growUp` | 1 → n | Bottom-aligned (offset shifts down) |
+| `shrinkDown` | n → 1 | Bottom-aligned (offset shifts down) |
+
+```
+growDown (top-aligned, growing):     growUp (bottom-aligned, growing):
+iter 0: [q0]                         iter 0:         [q2]
+iter 1: [q0, q1]                     iter 1:    [q1, q2]
+iter 2: [q0, q1, q2]                 iter 2: [q0, q1, q2]
+
+shrinkUp (top-aligned, shrinking):   shrinkDown (bottom-aligned, shrinking):
+iter 0: [q0, q1, q2]                 iter 0: [q0, q1, q2]
+iter 1: [q0, q1]                     iter 1:    [q1, q2]
+iter 2: [q0]                         iter 2:         [q2]
+```
+
+## Sub-Circuit Context
+
+Inside the callback, the sub-circuit exposes:
+
+```javascript
+q.iteration    // Absolute qubit index of the "active" qubit for this iteration
+q.offset       // Offset applied when merging back into parent
+q.parentSpan   // Total qubit count of the parent circuit
+q.inverseSpan  // Complement: (1 + parentSpan) - currentSize
+```
+
+These are useful for conditional logic inside nested loops.
+
+## Example: Bell State Staircase
+
+```javascript
+circuit({ qubits: 3 }, Q => {
+  Q.growUp(q => {
+    q.first().cx(q.last());
+  });
+});
+```
+
+Produces three CNOT gates: `cx q[2],q[2]`, `cx q[1],q[2]`, `cx q[0],q[2]` — a bottom-aligned growing pattern.
+
+## Example: QFT with Nested Staircases
+
+```javascript
+circuit({ qubits: 3 }, Q => {
+  Q.input([1, 0, 1]);
+  Q.barrier().brk();
+
+  Q.shrinkUp(q => {
+    q.shrinkDown(r => {
+      if (r.iteration < q.iteration) {
+        r.last().cp(r.first(), Q.π.div(2 ** (1 + q.iteration - r.iteration)));
+      }
+    });
+    q.last().h().brk();
+  });
+
+  Q.all().measure();
+});
+```
+
+This is a complete 3-qubit Quantum Fourier Transform — the nested staircase handles the controlled-phase ladder elegantly without explicit index tracking.
+
+## Custom Step Size
+
+All four methods accept an optional step size as first argument:
+
+```javascript
+Q.growDown(2, q => {
+  q.first().h();
+});
+// Sizes: 1, 3 (steps by 2)
+```

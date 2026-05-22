@@ -1,0 +1,60 @@
+---
+sidebar_position: 2
+---
+
+# Qubits & Selection
+
+All gate operations start with selecting one or more qubits. QuantumJS provides several fluent selectors on the circuit object `Q`.
+
+## Selectors
+
+```javascript
+Q.bit(0)          // Single qubit by index
+Q.bits([0, 2])    // Multiple qubits by index array
+Q.all()           // All qubits in the active scope
+Q.first()         // Qubit at index 0
+Q.last()          // Qubit at the highest index
+```
+
+These return a `QBitProxy`, which is where you chain gate calls.
+
+## Chaining Gates
+
+Selectors return a proxy that lets you chain any number of gates:
+
+```javascript
+Q.bit(0).h().x().y().z();   // Apply H, X, Y, Z to qubit 0 in sequence
+Q.all().measure();            // Measure every qubit
+```
+
+## Multi-Qubit Operations
+
+When selecting multiple qubits with `.bits()` or `.all()`, single-qubit gates are broadcast to each qubit in the selection:
+
+```javascript
+// Applies H to q[0], q[1], and q[2]
+Q.bits([0, 1, 2]).h();
+```
+
+For controlled gates (like `cx`), indices are paired one-to-one between control and target selections.
+
+## Scoped Selectors
+
+Inside staircase loops (see [Staircase Loops](./staircase-loops)), `first()`, `last()`, and `all()` resolve relative to the current sub-circuit scope:
+
+```javascript
+Q.shrinkUp(q => {
+  q.first().cx(q.last()); // first/last within the shrinking scope
+});
+```
+
+## Classical Bits
+
+Use `Q.cbit()` to reference the classical register for conditional operations:
+
+```javascript
+Q.cbit(0)        // Classical bit c[0]
+Q.cbit()         // Whole classical register c
+```
+
+See [Conditionals](./conditionals) for usage with `_if()`.

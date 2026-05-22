@@ -1,0 +1,169 @@
+---
+sidebar_position: 1
+---
+
+# API Reference
+
+## `circuit(config, callback)`
+
+Creates and returns a `Circuit` instance.
+
+```typescript
+function circuit(config: CircuitConfig, callback: (q: Circuit) => void): Circuit
+```
+
+```typescript
+interface CircuitConfig {
+  qubits: number;
+  bits?: number;    // default: 1, grows on demand
+  version?: string; // default: '3.0'
+}
+```
+
+---
+
+## `Circuit`
+
+### Qubit Selection
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `.bit(index)` | `QBitProxy` | Single qubit by index |
+| `.bits(indices)` | `QBitProxy` | Multiple qubits |
+| `.all()` | `QBitProxy` | All qubits in scope |
+| `.first()` | `QBitProxy` | Qubit at index 0 |
+| `.last()` | `QBitProxy` | Qubit at highest index |
+
+### Classical Bits
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `.cbit(index?, reg?)` | `CBitProxy` | Classical bit reference |
+
+### Circuit Operations
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `.barrier(indices?)` | `Circuit` | Barrier across qubits (default: all) |
+| `.comment(text)` | `Circuit` | Emit a QASM comment |
+| `.brk()` | `Circuit` | Emit a blank line |
+| `.input(source, options?)` | `Circuit` | Initialize qubit state |
+| `.loop(times, callback)` | `Circuit` | Repeat callback N times |
+| `.mask(maskArray, fn)` | `Circuit` | Apply fn only to qubits where mask is 1 |
+| `.compile(options?)` | `string` | Emit QASM string |
+
+### Staircase Loops
+
+| Method | Description |
+|--------|-------------|
+| `.growDown(step?, callback)` | Top-aligned, growing sub-circuits |
+| `.shrinkUp(step?, callback)` | Top-aligned, shrinking sub-circuits |
+| `.growUp(step?, callback)` | Bottom-aligned, growing sub-circuits |
+| `.shrinkDown(step?, callback)` | Bottom-aligned, shrinking sub-circuits |
+
+### Sub-Circuit Context Properties
+
+Available inside staircase loop callbacks on the `q` argument:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `q.iteration` | `number` | Absolute active qubit index for this iteration |
+| `q.offset` | `number` | Qubit offset applied when merging to parent |
+| `q.parentSpan` | `number` | Parent circuit qubit count |
+| `q.inverseSpan` | `number` | `(1 + parentSpan) - currentSize` |
+
+### Extension
+
+| Method | Description |
+|--------|-------------|
+| `.addFunction(name, fn)` | Register a custom chainable function |
+| `.fnc` | Proxy to call registered functions |
+
+### Math Helpers
+
+| Member | Description |
+|--------|-------------|
+| `Q.π.div(n)` | Symbolic `π / n` expression |
+| `Q.pi` | Symbolic `π` AST node |
+| `Q.div(left, right)` | Symbolic division expression |
+
+---
+
+## `QBitProxy`
+
+### Single-Qubit Gates
+
+`h()` · `x()` · `y()` · `z()` · `s()` · `s_()` · `t()` · `t_()` · `id()` · `reset()`
+
+### Rotation
+
+`u(params: (number | Expression)[])`
+
+### Two-Qubit Gates
+
+`cx(target)` · `cy(target)` · `cz(target)` · `ch(target)` · `swap(target)` · `cp(target, theta)` · `cu1(target, theta)`
+
+### Three-Qubit Gates
+
+`ccx(b, c)` · `toffoli(b, c)`
+
+### Measurement
+
+| Method | Description |
+|--------|-------------|
+| `.measure()` | Measure to same-index classical bit |
+| `.measureTo(index?, group?)` | Measure to specific classical bit |
+| `.measureX(...)` | Measure in X basis (H + measure) |
+| `.measureY(...)` | Measure in Y basis (S† + H + measure) |
+| `.measureZ(...)` | Measure in Z basis |
+| `.measureW(...)` | Measure in W basis (S + H + T + H + measure) |
+| `.measureV(...)` | Measure in V basis (S + H + T† + H + measure) |
+
+### Utilities
+
+| Method | Description |
+|--------|-------------|
+| `._if(cbit, callback?)` | Conditional gate execution |
+| `.repeat(times, op, ...params)` | Repeat a named gate N times |
+| `.barrier()` | Barrier on selected qubits |
+| `.comment(text)` | Emit comment (delegates to circuit) |
+| `.brk()` | Emit blank line (delegates to circuit) |
+
+---
+
+## `pipeline(config, input?, output?, callback?)`
+
+Creates a `Pipeline`.
+
+```typescript
+function pipeline(
+  config: CircuitConfig | Circuit,
+  input?: string | array | function | { source, endian? },
+  output?: function | { format?, postProcess? },
+  callback?: (q: Circuit) => void
+): Pipeline
+```
+
+### `Pipeline`
+
+| Method | Description |
+|--------|-------------|
+| `.compile(options?)` | Emit QASM string |
+| `.run(simulator)` | Run with a quantum-circuit compatible simulator |
+| `.rawCircuit` | Access the underlying `Circuit` |
+
+---
+
+## Standalone Exports
+
+```typescript
+import { circuit, pipeline, pi, div, BENCH_SAMPLE } from 'quantumjs';
+```
+
+| Export | Type | Description |
+|--------|------|-------------|
+| `circuit` | function | Create a circuit |
+| `pipeline` | function | Create a pipeline |
+| `pi` | `AST.Expression` | Symbolic π |
+| `div` | function | Symbolic division |
+| `BENCH_SAMPLE` | `string` | Default Bench IDE sample code |

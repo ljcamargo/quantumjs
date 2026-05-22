@@ -1,0 +1,45 @@
+.main {
+  display: flex;
+  justify-content: center;
+  padding: 4rem 2rem;
+}
+
+.hero {
+  max-width: 760px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 1.5rem;
+}
+
+.title {
+  font-size: 3.5rem;
+  font-weight: 800;
+  margin: 0;
+}
+
+.tagline {
+  font-size: 1.2rem;
+  opacity: 0.75;
+  margin: 0;
+  line-height: 1.6;
+}
+
+.buttons {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.snippet {
+  text-align: left;
+  background: var(--ifm-code-background);
+  border-radius: 8px;
+  padding: 1.5rem;
+  font-size: 0.9rem;
+  width: 100%;
+  margin: 0;
+}
