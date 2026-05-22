@@ -1,5 +1,5 @@
 # <img src="assets/logo_small.png" align="center" width="40" height="40" /> QuantumJS
-[![GitHub version](https://badge.fury.io/gh/lsjcp%2Fquantumjs.svg)](https://badge.fury.io/gh/lsjcp%2Fquantumjs)
+[![GitHub version](https://badge.fury.io/gh/ljcamargo%2Fquantumjs.svg)](https://badge.fury.io/gh/ljcamargo%2Fquantumjs)
 
 A modern, highly expressive Quantum Circuit Domain Specific Language (DSL) and AST-driven compiler for JavaScript and TypeScript.
 

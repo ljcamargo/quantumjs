@@ -1,7 +1,7 @@
 {
   "name": "quantumjs",
-  "version": "1.0.0",
-  "description": "[![GitHub version](https://badge.fury.io/gh/lsjcp%2Fquantumjs.svg)](https://badge.fury.io/gh/lsjcp%2Fquantumjs)",
+  "version": "0.9.0",
+  "description": "[![GitHub version](https://badge.fury.io/gh/ljcamargo%2Fquantumjs.svg)](https://badge.fury.io/gh/ljcamargo%2Fquantumjs)",
   "main": "quantum.js",
   "directories": {
     "example": "examples"
