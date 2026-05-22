@@ -1,6 +1,9 @@
 {
   "name": "quantumjs",
   "version": "0.9.0",
+  "publishConfig": {
+    "name": "quantumjs-dsl"
+  },
   "description": "",
   "main": "./dist/index.js",
   "scripts": {
