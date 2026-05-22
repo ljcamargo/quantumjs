@@ -23,7 +23,7 @@ export class Circuit {
   public div = (left: AST.Expression, right: number | AST.Expression): AST.Expression => {
     return div(left, right);
   };
-  
+
   // The greek letter gimmick proxy
   public π = {
     div: (right: number | AST.Expression): AST.Expression => {
@@ -108,9 +108,9 @@ export class Circuit {
     subCircuit.program.body = []; // Clear sub-declarations
     subCircuit.parentSpan = this.qubitCount;
     subCircuit.offset = this.offset + start;
-    
+
     callback(subCircuit);
-    
+
     this.mergeSubCircuit(subCircuit, start);
     return this;
   }
@@ -128,9 +128,9 @@ export class Circuit {
       subCircuit.offset = this.offset + 0;
       subCircuit.iteration = size - 1; // Absolute active qubit index
       subCircuit.inverseSpan = (1 + span) - size;
-      
+
       cb(subCircuit);
-      
+
       this.mergeSubCircuit(subCircuit, 0);
     }
     return this;
@@ -148,9 +148,9 @@ export class Circuit {
       subCircuit.offset = this.offset + 0;
       subCircuit.iteration = size - 1; // Absolute active qubit index
       subCircuit.inverseSpan = (1 + span) - size;
-      
+
       cb(subCircuit);
-      
+
       this.mergeSubCircuit(subCircuit, 0);
     }
     return this;
@@ -169,9 +169,9 @@ export class Circuit {
       subCircuit.offset = this.offset + (span - size);
       subCircuit.iteration = span - size; // Absolute active qubit index (offset relative to parent)
       subCircuit.inverseSpan = (1 + span) - size;
-      
+
       cb(subCircuit);
-      
+
       this.mergeSubCircuit(subCircuit, span - size);
     }
     return this;
@@ -190,9 +190,9 @@ export class Circuit {
       subCircuit.offset = this.offset + (span - size);
       subCircuit.iteration = span - size; // Absolute active qubit index (offset relative to parent)
       subCircuit.inverseSpan = (1 + span) - size;
-      
+
       cb(subCircuit);
-      
+
       this.mergeSubCircuit(subCircuit, span - size);
     }
     return this;
@@ -353,6 +353,7 @@ export class QBitProxy {
       for (let i = 0; i < this.indices.length; i++) {
         const ctrl = this.indices[i];
         const tgt = target.indices[i] !== undefined ? target.indices[i] : target.indices[0];
+        if (ctrl === tgt) continue; // ← silently skip self-controlled gates
         this.circuit.body.push({
           kind: 'GateCall',
           gate,
@@ -398,8 +399,8 @@ export class QBitProxy {
   cnot(target: QBitProxy) { return this.cx(target); }
 
   cp(target: QBitProxy, theta: number | AST.Expression) {
-    const thetaExpr: AST.Expression = typeof theta === 'number' 
-      ? { kind: 'Literal', value: theta } 
+    const thetaExpr: AST.Expression = typeof theta === 'number'
+      ? { kind: 'Literal', value: theta }
       : theta;
     return this.addGate('cp', target, [thetaExpr]);
   }
@@ -415,6 +416,7 @@ export class QBitProxy {
       const q1 = this.indices[i];
       const q2 = b.indices[i] !== undefined ? b.indices[i] : b.indices[0];
       const q3 = c.indices[i] !== undefined ? c.indices[i] : c.indices[0];
+      if (q1 === q2 || q1 === q3 || q2 === q3) continue; // ← skip any overlap
       this.circuit.body.push({
         kind: 'GateCall',
         gate: 'ccx',
@@ -454,8 +456,8 @@ export class QBitProxy {
   toZ() { return this; }
 
   measure() {
-    const index = (this.indices.length === 1 && this.indices[0]! > -1) 
-      ? this.indices[0]! 
+    const index = (this.indices.length === 1 && this.indices[0]! > -1)
+      ? this.indices[0]!
       : undefined;
     return this.measureTo(index);
   }
@@ -480,20 +482,20 @@ export class QBitProxy {
         this.circuit.body.push({
           kind: 'MeasureStatement',
           qubit: { kind: 'QubitReference', identifier: 'q', index: this.indices[0]! },
-          target: { 
-            kind: 'ClassicalReference', 
-            identifier: cbit.reg, 
-            index: cbit.index === -1 ? undefined : cbit.index 
+          target: {
+            kind: 'ClassicalReference',
+            identifier: cbit.reg,
+            index: cbit.index === -1 ? undefined : cbit.index
           },
         });
       } else {
         this.circuit.body.push({
           kind: 'MeasureStatement',
           qubit: { kind: 'QubitReference', identifier: 'q' }, // No index
-          target: { 
-            kind: 'ClassicalReference', 
-            identifier: cbit.reg, 
-            index: cbit.index === -1 ? undefined : cbit.index 
+          target: {
+            kind: 'ClassicalReference',
+            identifier: cbit.reg,
+            index: cbit.index === -1 ? undefined : cbit.index
           },
         });
       }
@@ -556,12 +558,12 @@ export class CBitProxy {
   constructor(public circuit: Circuit, index?: number, reg?: string) {
     this.reg = reg || 'c';
     this.index = (index === undefined || index === null) ? -1 : index;
-    
+
     this.condition = {
       kind: 'BinaryExpression',
-      left: { 
-        kind: 'Identifier', 
-        name: this.index === -1 ? this.reg : `${this.reg}[${this.index}]` 
+      left: {
+        kind: 'Identifier',
+        name: this.index === -1 ? this.reg : `${this.reg}[${this.index}]`
       },
       operator: '==',
       right: { kind: 'Literal', value: 1 }
@@ -698,4 +700,3 @@ export function pipeline(
 ): Pipeline {
   return new Pipeline(configOrCircuit, input, output, callback);
 }
-

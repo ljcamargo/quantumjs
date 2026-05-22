@@ -1,4 +1,4 @@
-import { circuit, pi, div, pipeline, BENCH_SAMPLE } from './index.js';
+import { circuit, pi, div, pipeline } from './index.js';
 import * as Quantum from './index.js';
 
 // Test 1: Basic Gates & Chaining
@@ -65,19 +65,19 @@ export function testScopedQFT() {
             q.first().cx(q.last());
         });
         Q.barrier();
-        
+
         Q.comment("growDown staircase");
         Q.growDown(q => {
             q.first().cx(q.last());
         });
         Q.barrier();
-        
+
         Q.comment("shrinkUp staircase");
         Q.shrinkUp(q => {
             q.first().cx(q.last());
         });
         Q.barrier();
-        
+
         Q.comment("shrinkDown staircase");
         Q.shrinkDown(q => {
             q.first().cx(q.last());
@@ -93,23 +93,14 @@ export function testScopedQFT() {
 export function testPipeline() {
     console.log("Test 6: Pipeline");
     const p = pipeline(
-        { qubits: 3 }, 
-        "101", 
+        { qubits: 3 },
+        "101",
         Q => Q.all().measure(),
         Q => {
             Q.comment("Core algorithm step");
             Q.bit(0).cx(Q.bit(1));
         }
     );
-    console.log(p.compile());
-}
-
-
-// Test 7: Bench default sample compilation
-export function testBenchSample() {
-    console.log("Test 7: Bench Default Sample");
-    const execute = new Function('Quantum', BENCH_SAMPLE);
-    const p = execute(Quantum);
     console.log(p.compile());
 }
 
@@ -120,4 +111,3 @@ testQFT();
 testIQFT();
 testScopedQFT();
 testPipeline();
-testBenchSample();
