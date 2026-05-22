@@ -1,0 +1,69 @@
+---
+sidebar_position: 1
+slug: /
+---
+
+# Introduction
+
+**QuantumJS** is a modern, expressive Quantum Circuit Domain Specific Language (DSL) and AST-driven compiler for JavaScript and TypeScript.
+
+It lets you describe quantum circuits using a fluent, chainable API — then compile them to **OpenQASM 3.0** (with OpenQASM 2.0 compatibility) for execution on real quantum processors or local statevector simulators.
+
+## Why QuantumJS?
+
+Writing quantum circuits in raw QASM is verbose and error-prone. QuantumJS gives you:
+
+- **Fluent chaining** — compose gates naturally: `Q.bit(0).h().cx(Q.bit(1))`
+- **Expressive inputs** — initialize state from binary strings, Pauli strings, or gate arrays
+- **Scoped staircase loops** — `growUp`, `growDown`, `shrinkUp`, `shrinkDown` for elegant recursive patterns like QFT
+- **Pipeline abstraction** — wrap input prep, algorithm, and output measurement into a single structured job
+- **Dual QASM output** — target OpenQASM 3.0 by default or 2.0 for legacy compatibility
+- **Custom routines** — extend the DSL with reusable, chainable functions
+
+## Live Demo
+
+An interactive IDE to write, visualize, and simulate circuits is available at **[quantumjs.netlify.app](https://quantumjs.netlify.app)**.
+
+## Installation
+
+```bash
+npm install quantumjs
+# or
+bun add quantumjs
+```
+
+## Quick Example
+
+```javascript
+import { circuit } from 'quantumjs';
+
+const c = circuit({ qubits: 2 }, Q => {
+  Q.bit(0).h();
+  Q.bit(0).cx(Q.bit(1));
+  Q.all().measure();
+});
+
+console.log(c.compile()); // OpenQASM 3.0
+```
+
+Output:
+
+```qasm
+OPENQASM 3.0;
+include "stdgates.inc";
+qubit[2] q;
+bit[1] c;
+h q[0];
+cx q[0], q[1];
+c = measure q;
+```
+
+## Package Structure
+
+QuantumJS is organized as a monorepo:
+
+| Package / App | Description |
+|---|---|
+| `packages/quantumjs` | Core DSL, AST, and compiler |
+| `apps/bench` | Interactive live IDE and circuit visualizer |
+| `apps/documentation` | This documentation site |

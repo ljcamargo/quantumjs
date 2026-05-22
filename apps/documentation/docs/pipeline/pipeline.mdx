@@ -1,0 +1,100 @@
+---
+sidebar_position: 1
+---
+
+# Pipeline
+
+A `Pipeline` is a structured wrapper around a circuit that separates three concerns into distinct stages: **input preparation**, **core algorithm**, and **output measurement**. It's the recommended way to organize non-trivial circuits.
+
+```javascript
+import { pipeline } from 'quantumjs';
+
+const job = pipeline(
+  { qubits: 3 },          // Circuit config
+  "101",                   // Input stage
+  Q => Q.all().measure(),  // Output stage
+  Q => {                   // Algorithm stage
+    Q.comment("Core algorithm");
+    Q.bit(0).cx(Q.bit(1));
+  }
+);
+
+const qasm = job.compile();
+```
+
+## Stage Order
+
+Stages execute in this order regardless of argument position:
+
+1. **Input** — state initialization (`input()` is called for you)
+2. **Algorithm** — your core gates callback
+3. **Output** — measurement / post-processing
+
+## Input Stage
+
+Accepts the same values as `circuit.input()`:
+
+```javascript
+// Binary string
+pipeline({ qubits: 3 }, "101", output, algorithm);
+
+// Pauli string
+pipeline({ qubits: 3 }, "XZI", output, algorithm);
+
+// Gate array
+pipeline({ qubits: 3 }, ['H', 'X', '0'], output, algorithm);
+
+// Endian option
+pipeline({ qubits: 3 }, { source: "101", endian: 'little' }, output, algorithm);
+
+// Callback
+pipeline({ qubits: 3 }, Q => { Q.bit(0).h(); }, output, algorithm);
+```
+
+## Output Stage
+
+Accepts a function or a structured object:
+
+```javascript
+// Function
+pipeline({ qubits: 2 }, input, Q => Q.all().measure(), algorithm);
+
+// Structured with format shorthand
+pipeline({ qubits: 2 }, input, { format: 'readEach' }, algorithm);
+// readEach: Q.all().measure()
+// readToOne: Q.first().measure()
+
+// With post-processing
+pipeline({ qubits: 2 }, input, {
+  format: 'readEach',
+  postProcess: results => {
+    return Object.entries(results).sort((a, b) => b[1] - a[1]);
+  }
+}, algorithm);
+```
+
+## Compiling
+
+```javascript
+const qasm3 = job.compile();
+const qasm2 = job.compile({ version: '2.0' });
+```
+
+## Running with a Simulator
+
+The `run()` method accepts any simulator that implements the `quantum-circuit` interface (e.g. the [`quantum-circuit`](https://www.npmjs.com/package/quantum-circuit) package):
+
+```javascript
+import QuantumCircuit from 'quantum-circuit';
+
+const sim = new QuantumCircuit();
+const results = job.run(sim);
+```
+
+Internally, `run()` compiles to OpenQASM 2.0 (for maximum simulator compatibility), imports it, runs the simulation, and returns probabilities. If a `postProcess` callback was provided, its return value is used instead.
+
+## Accessing the Raw Circuit
+
+```javascript
+const c = job.rawCircuit; // Returns the underlying Circuit instance
+```

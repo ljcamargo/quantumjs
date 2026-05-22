@@ -1,0 +1,61 @@
+---
+sidebar_position: 8
+---
+
+# Custom Functions
+
+You can extend the DSL with your own reusable, chainable routines using `addFunction()`. This lets you define named sub-algorithms that integrate naturally into the fluent API.
+
+## Defining a Custom Function
+
+```javascript
+circuit({ qubits: 3 }, Q => {
+  Q.addFunction('bellState', (q, control, target) => {
+    q.bit(control).h().cx(q.bit(target));
+  });
+
+  // Call it through the fnc proxy
+  Q.fnc.bellState(0, 1);
+  Q.fnc.bellState(1, 2);
+  Q.all().measure();
+});
+```
+
+The first argument to the function body is always the circuit (`q`). Any subsequent arguments are what you pass when calling it.
+
+## Reusing Across Circuits
+
+Define your routines as plain functions and call `addFunction` in any circuit:
+
+```javascript
+function registerRoutines(Q) {
+  Q.addFunction('qft2', (q) => {
+    q.bit(0).h();
+    q.bit(0).cp(q.bit(1), q.π.div(2));
+    q.bit(1).h();
+  });
+
+  Q.addFunction('bellState', (q, ctrl, tgt) => {
+    q.bit(ctrl).h().cx(q.bit(tgt));
+  });
+}
+
+const c1 = circuit({ qubits: 2 }, Q => {
+  registerRoutines(Q);
+  Q.fnc.qft2();
+  Q.all().measure();
+});
+
+const c2 = circuit({ qubits: 4 }, Q => {
+  registerRoutines(Q);
+  Q.fnc.bellState(0, 1);
+  Q.fnc.bellState(2, 3);
+  Q.all().measure();
+});
+```
+
+## Notes
+
+- Functions are registered on the circuit instance via `addFunction` and accessed through `Q.fnc`.
+- `Q.fnc` is a proxy that simply returns the circuit itself, so `Q.fnc.myFunc(...)` is equivalent to `Q.myFunc(...)` after registration.
+- The function body receives the circuit as its first argument, followed by any arguments you pass at the call site.

@@ -1,0 +1,74 @@
+---
+sidebar_position: 4
+---
+
+# Input Initialization
+
+The `input()` method prepares the initial quantum state before your algorithm runs. It accepts binary strings, Pauli strings, gate arrays, or a callback — and automatically skips ground states (`0` or `I`) to keep QASM output clean.
+
+## Binary String
+
+Each character maps to a qubit by position (big-endian by default):
+
+```javascript
+Q.input("101");   // X on q[0], skip q[1], X on q[2]
+Q.input("010");   // skip q[0], X on q[1], skip q[2]
+```
+
+### Little-Endian
+
+```javascript
+Q.input("101", { endian: 'little' }); // reversed: X on q[2], skip q[1], X on q[0]
+```
+
+## Pauli String
+
+Use Pauli labels directly. `I` (identity) and `0` are skipped:
+
+```javascript
+Q.input("XXIZI"); // X on q[0], X on q[1], skip q[2], X on q[3], skip q[4]
+```
+
+## Gate Array
+
+Pass an explicit array of gate names or values:
+
+```javascript
+Q.input(['X', 'H', 'S']); // X on q[0], H on q[1], S on q[2]
+Q.input([1, 0, 1]);        // same as binary "101"
+```
+
+## Full Symbol Reference
+
+| Symbol | Gate Applied | Notes |
+|--------|-------------|-------|
+| `1`, `X`, `x` | X | Bit flip / NOT |
+| `0`, `I`, `i`, `=` | *(skip)* | Ground state, no gate emitted |
+| `+` | H | \|+⟩ state |
+| `-` | H, Z | \|-⟩ state |
+| `>`, `r`, `+i` | H, S | \|i⟩ state (right circular) |
+| `<`, `l`, `-i` | H, S† | \|-i⟩ state (left circular) |
+| `H`, `h` | H | Hadamard |
+| `S`, `s` | S | Phase gate |
+| `Z`, `z` | Z | Pauli-Z |
+
+## Callback Form
+
+For full control, pass a function:
+
+```javascript
+Q.input(q => {
+  q.bit(0).h().s();
+  q.bit(1).x();
+});
+```
+
+## Example: QFT Input Prep
+
+```javascript
+circuit({ qubits: 3 }, Q => {
+  Q.input([1, 0, 1]); // Initialize |101⟩
+  Q.barrier();
+  // ... QFT gates follow
+});
+```

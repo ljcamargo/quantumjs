@@ -1,0 +1,61 @@
+---
+sidebar_position: 5
+---
+
+# Measurement
+
+Measurement collapses qubits to classical bits and is required to read results from a circuit.
+
+## Basic Measurement
+
+```javascript
+Q.bit(0).measure();     // Measures q[0] → c[0]
+Q.all().measure();      // Measures all qubits (one-to-one mapping)
+Q.bit(1).measureTo(0);  // Measures q[1] → c[0] explicitly
+```
+
+When measuring a single qubit with `.measure()`, it maps to the classical bit at the same index (`c[0]` for `q[0]`, etc). The classical register grows automatically to accommodate.
+
+## Basis Measurement (Bloch Tomography)
+
+To measure in a basis other than the computational (Z) basis, QuantumJS applies the appropriate basis-change gates before measuring:
+
+```javascript
+Q.bit(0).measureX(); // H → measure         (X basis)
+Q.bit(0).measureY(); // S† → H → measure    (Y basis)
+Q.bit(0).measureZ(); // measure              (Z basis, default)
+Q.bit(0).measureW(); // S → H → T → H → measure  (W basis)
+Q.bit(0).measureV(); // S → H → T† → H → measure (V basis)
+```
+
+These are useful for quantum state tomography experiments.
+
+## Measuring to a Specific Classical Bit
+
+```javascript
+Q.bit(2).measureTo(1); // q[2] → c[1]
+```
+
+You can also pass a `CBitProxy`:
+
+```javascript
+Q.bit(2).measureTo(Q.cbit(1)); // equivalent
+```
+
+## Whole Register Measurement
+
+```javascript
+Q.all().measure(); // q → c (full register, one-to-one)
+```
+
+This emits a single bulk measure statement in OpenQASM 3.0:
+
+```qasm
+c = measure q;
+```
+
+Or in OpenQASM 2.0:
+
+```qasm
+measure q -> c;
+```

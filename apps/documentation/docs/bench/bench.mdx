@@ -1,0 +1,79 @@
+---
+sidebar_position: 1
+---
+
+# Bench
+
+The **Bench** is QuantumJS's interactive live IDE, available at [quantumjs.netlify.app](https://quantumjs.netlify.app).
+
+It lets you write, visualize, and simulate quantum circuits in real time directly in your browser — no installation required.
+
+## What You Can Do
+
+- Write QuantumJS DSL code in an in-browser editor
+- See the compiled OpenQASM output update in real time
+- Visualize the circuit diagram
+- Run statevector simulation and inspect results
+- Load and modify the built-in example circuits
+
+## Writing Code in the Bench
+
+The Bench exposes the full QuantumJS API via a global `Quantum` object. Your script should return a circuit or pipeline:
+
+```javascript
+// Available globals: Quantum
+const c = Quantum.circuit({ qubits: 3 }, Q => {
+  Q.input("101");
+  Q.barrier();
+  Q.bit(0).h();
+  Q.bit(0).cx(Q.bit(1));
+  Q.all().measure();
+});
+
+return c;
+```
+
+The returned circuit is compiled and visualized automatically.
+
+## Default Sample
+
+When you first open the Bench, it loads a staircase comparison sample that demonstrates all four scoped layout loops side by side:
+
+```javascript
+// 3-bit Quantum Scoped Stairs Comparison
+const c = Quantum.circuit({ qubits: 3 }, Q => {
+  Q.comment("Staircase Visualizer with CNOTs");
+  Q.input("101");
+  Q.barrier().brk();
+
+  Q.comment("growUp (bottom-aligned growing)");
+  Q.growUp(q => { q.first().cx(q.last()); });
+  Q.barrier();
+
+  Q.comment("growDown (top-aligned growing)");
+  Q.growDown(q => { q.first().cx(q.last()); });
+  Q.barrier();
+
+  Q.comment("shrinkUp (top-aligned shrinking)");
+  Q.shrinkUp(q => { q.first().cx(q.last()); });
+  Q.barrier();
+
+  Q.comment("shrinkDown (bottom-aligned shrinking)");
+  Q.shrinkDown(q => { q.first().cx(q.last()); });
+
+  Q.barrier();
+  Q.all().measure();
+});
+
+return c;
+```
+
+## Running Locally
+
+The Bench lives at `apps/bench` in the monorepo. To run it locally:
+
+```bash
+bun install
+cd apps/bench
+bun dev
+```

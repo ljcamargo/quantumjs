@@ -1,0 +1,63 @@
+---
+sidebar_position: 7
+---
+
+# Conditionals
+
+QuantumJS supports classical conditionals — gates that execute only if a classical bit holds a specific value. This is used in mid-circuit measurement and quantum teleportation protocols.
+
+## `_if()` with Callback
+
+Pass a callback to conditionally execute a block of gates:
+
+```javascript
+circuit({ qubits: 2 }, Q => {
+  Q.bit(0).h();
+  Q.bit(1).measure();
+
+  // Apply X to q[0] only if c[0] == 1
+  Q.bit(0)._if(Q.cbit(0), q => {
+    q.x();
+  });
+});
+```
+
+## `_if()` on Previous Gate
+
+Without a callback, `_if()` conditions the immediately preceding gate:
+
+```javascript
+circuit({ qubits: 2 }, Q => {
+  Q.bit(0).h();
+  Q.bit(1).x()._if(Q.cbit(0)); // x on q[1] only if c[0] == 1
+});
+```
+
+## Classical Bit Reference
+
+```javascript
+Q.cbit(0)   // c[0] — specific classical bit
+Q.cbit()    // c   — whole classical register
+```
+
+By default the condition checks `== 1`. You can modify it:
+
+```javascript
+const cb = Q.cbit(0);
+cb.isTrue();   // c[0] == 1 (default)
+cb.isFalse();  // c[0] == 0
+```
+
+## QASM Output
+
+OpenQASM 3.0:
+```qasm
+if (c[0] == 1) {
+  x q[1];
+}
+```
+
+OpenQASM 2.0:
+```qasm
+if(c[0]==1) x q[1];
+```

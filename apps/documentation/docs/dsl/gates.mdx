@@ -1,0 +1,87 @@
+---
+sidebar_position: 3
+---
+
+# Gates
+
+All gate methods are chained directly on a `QBitProxy` returned by a qubit selector.
+
+## Single-Qubit Gates
+
+```javascript
+Q.bit(0).h()      // Hadamard
+Q.bit(0).x()      // Pauli-X (NOT)
+Q.bit(0).y()      // Pauli-Y
+Q.bit(0).z()      // Pauli-Z
+Q.bit(0).s()      // S gate (√Z)
+Q.bit(0).s_()     // S† (S conjugate / SDG)
+Q.bit(0).t()      // T gate (⁴√Z)
+Q.bit(0).t_()     // T† (T conjugate / TDG)
+Q.bit(0).id()     // Identity
+Q.bit(0).reset()  // Reset to |0⟩
+```
+
+## Rotation Gate
+
+The `u()` gate applies a general single-qubit unitary with three Euler angles `[θ, φ, λ]`:
+
+```javascript
+Q.bit(0).u([0.3, 0.2, 0.1]); // U(θ=0.3, φ=0.2, λ=0.1)
+```
+
+Parameters can be numbers or AST expression objects (e.g. `Q.π.div(2)`).
+
+## Two-Qubit Gates
+
+Controlled gates take a target `QBitProxy` as argument:
+
+```javascript
+Q.bit(0).cx(Q.bit(1))   // CNOT (alias: cnot)
+Q.bit(0).cy(Q.bit(1))   // Controlled-Y
+Q.bit(0).cz(Q.bit(1))   // Controlled-Z
+Q.bit(0).ch(Q.bit(1))   // Controlled-Hadamard
+Q.bit(0).swap(Q.bit(1)) // SWAP
+```
+
+### Controlled Phase
+
+```javascript
+import { circuit } from 'quantumjs';
+
+circuit({ qubits: 2 }, Q => {
+  Q.bit(0).cp(Q.bit(1), Q.π.div(2)); // CP with θ = π/2
+  Q.bit(0).cu1(Q.bit(1), 0.5);       // alias for cp
+});
+```
+
+`cp` and `cu1` are identical — `cu1` is provided as an alias for compatibility with older circuit descriptions.
+
+## Three-Qubit Gate (Toffoli)
+
+```javascript
+Q.bit(0).ccx(Q.bit(1), Q.bit(2))      // Toffoli / CCX
+Q.bit(0).toffoli(Q.bit(1), Q.bit(2))  // alias for ccx
+```
+
+## Repeating a Gate
+
+Use `.repeat()` to apply the same gate multiple times:
+
+```javascript
+Q.bit(0).repeat(3, 'h'); // Apply H three times
+```
+
+## π Expressions
+
+For parameterized gates, QuantumJS provides a symbolic `π` helper to keep QASM output clean:
+
+```javascript
+Q.π.div(2)   // π/2
+Q.π.div(4)   // π/4
+
+// Or using the standalone helpers:
+import { pi, div } from 'quantumjs';
+div(pi, 2)   // π/2
+```
+
+These produce symbolic AST expressions that emit as `(pi / 2)` in QASM rather than a floating-point approximation.

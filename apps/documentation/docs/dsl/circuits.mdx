@@ -1,0 +1,66 @@
+---
+sidebar_position: 1
+sidebar_label: Circuits
+---
+
+# Circuits
+
+A circuit is the top-level container for your quantum program. You create one with the `circuit()` function, passing a config object and a builder callback.
+
+```javascript
+import { circuit } from 'quantumjs';
+
+const c = circuit({ qubits: 2 }, Q => {
+  Q.bit(0).h();
+  Q.bit(0).cx(Q.bit(1));
+  Q.all().measure();
+});
+```
+
+## Configuration
+
+```typescript
+interface CircuitConfig {
+  qubits: number;   // Number of qubits (required)
+  bits?: number;    // Classical register size (default: 1, grows on demand)
+  version?: string; // QASM version: '3.0' (default) or '2.0'
+}
+```
+
+The classical register grows automatically as you add measurements — you rarely need to set `bits` manually.
+
+## Compiling
+
+Call `.compile()` on the returned circuit to get the QASM string:
+
+```javascript
+const qasm3 = c.compile();              // OpenQASM 3.0 (default)
+const qasm2 = c.compile({ version: '2.0' }); // OpenQASM 2.0 compatibility
+```
+
+## Barriers and Comments
+
+Use barriers to separate stages of your circuit visually and logically. Use comments for annotation and `brk()` for blank line spacing in the output.
+
+```javascript
+circuit({ qubits: 3 }, Q => {
+  Q.comment("State preparation");
+  Q.input("101");
+  Q.barrier();          // barrier across all qubits
+  Q.brk();              // blank line in QASM output
+  Q.comment("Algorithm");
+  Q.bit(0).h();
+});
+```
+
+## Looping
+
+Use `loop()` to repeat a block of operations a fixed number of times:
+
+```javascript
+circuit({ qubits: 1 }, Q => {
+  Q.loop(3, q => {
+    q.bit(0).h().z();
+  });
+});
+```
