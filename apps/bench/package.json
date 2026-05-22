@@ -18,7 +18,7 @@
     "next": "16.2.3",
     "prismjs": "^1.30.0",
     "quantum-circuit": "^0.9.247",
-    "quantumjs": "file:../../packages/quantumjs",
+    "@quantum-js/dsl": "file:../../packages/quantumjs",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-simple-code-editor": "^0.14.1",

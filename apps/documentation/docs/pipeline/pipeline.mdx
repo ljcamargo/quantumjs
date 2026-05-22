@@ -7,7 +7,7 @@ sidebar_position: 1
 A `Pipeline` is a structured wrapper around a circuit that separates three concerns into distinct stages: **input preparation**, **core algorithm**, and **output measurement**. It's the recommended way to organize non-trivial circuits.
 
 ```javascript
-import { pipeline } from 'quantumjs';
+import { pipeline } from '@quantum-js/dsl';
 
 const job = pipeline(
   { qubits: 3 },          // Circuit config

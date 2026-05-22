@@ -1,25 +1,24 @@
 {
-  "name": "quantumjs",
+  "name": "@quantum-js/dsl",
   "version": "0.9.0",
-  "publishConfig": {
-    "name": "quantumjs-dsl"
-  },
-  "description": "",
+  "description": "A fluent DSL and AST-driven OpenQASM 3.0 compiler for building quantum circuits in JavaScript and TypeScript",
+  "files": ["dist"],
   "main": "./dist/index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "module",
-  "devDependencies": {
-    "@types/node": "^25.5.2",
-    "typescript": "^6.0.2"
-  },
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["quantum", "qasm", "openqasm", "quantum-computing", "dsl", "circuit", "typescript"],
+  "author": "Luis J Camargo",
+  "license": "Apache-2.0",
+  "type": "module",
+  "devDependencies": {
+    "@types/node": "^25.5.2",
+    "typescript": "^6.0.2"
   }
 }
