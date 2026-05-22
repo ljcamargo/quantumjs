@@ -37,8 +37,8 @@ export const EditorPanel = ({ code, setCode }: { code: string, setCode: (c: stri
         .npm-editor textarea { outline: none !important; }
         .npm-editor pre { pointer-events: none; }
         /* Enable both horizontal and vertical scrolling */
-        .npm-editor textarea, .npm-editor pre { 
-          white-space: pre !important; 
+        .npm-editor textarea, .npm-editor pre {
+          white-space: pre !important;
           word-break: normal !important;
           overflow-wrap: normal !important;
         }
@@ -65,8 +65,8 @@ export const EditorPanel = ({ code, setCode }: { code: string, setCode: (c: stri
 
 export const QasmPanel = ({ qasm }: { qasm: string }) => (
   <Panel title="Generated QASM 3.0" icon={<Terminal size={14} />}>
-    <div className="p-4 h-full">
-      <pre 
+    <div className="p-4 h-full overflow-auto">
+      <pre
         className="text-[13px] font-mono text-cyan-500/80 whitespace-pre"
         dangerouslySetInnerHTML={{ __html: highlight(qasm, languages.clike, 'clike') }}
       />
@@ -76,7 +76,7 @@ export const QasmPanel = ({ qasm }: { qasm: string }) => (
 
 export const ResultsPanel = ({ results, isSimulating }: { results: any, isSimulating: boolean }) => (
   <Panel title="Probabilities" icon={<Layers size={14} />}>
-    <div className="p-4 h-full">
+    <div className="p-4 h-full overflow-auto">
       {isSimulating ? (
         <div className="h-full flex flex-col items-center justify-center text-slate-600 gap-2">
           <div className="w-8 h-8 border-2 border-slate-800 border-t-cyan-500 rounded-full animate-spin" />
@@ -91,7 +91,7 @@ export const ResultsPanel = ({ results, isSimulating }: { results: any, isSimula
                 <span className="text-slate-500">{(prob * 100).toFixed(1)}%</span>
               </div>
               <div className="h-1.5 w-full bg-black/40 rounded-full overflow-hidden">
-                <div 
+                <div
                   className="h-full bg-gradient-to-r from-cyan-600 to-blue-500 transition-all duration-500"
                   style={{ width: `${prob * 100}%` }}
                 />

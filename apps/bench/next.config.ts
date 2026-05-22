@@ -19,6 +19,10 @@ const nextConfig: NextConfig = {
         os: false,
       };
     }
+    config.module.rules.push({
+      test: /\.quantumjs$/,
+      use: 'raw-loader',
+    });
     return config;
   },
 };

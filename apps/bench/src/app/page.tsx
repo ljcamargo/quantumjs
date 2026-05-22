@@ -9,7 +9,7 @@ import * as Quantum from 'quantumjs';
 import { EditorPanel, QasmPanel, ResultsPanel, ErrorDisplay } from '../components/Panels';
 import { VisualizerPanel } from '../components/VisualizerPanel';
 
-const DEFAULT_CODE = Quantum.BENCH_SAMPLE;
+import DEFAULT_CODE from '../samples/qft_sugar.quantumjs';
 
 export default function Playground() {
   const [code, setCode] = useState(DEFAULT_CODE);
@@ -24,7 +24,7 @@ export default function Playground() {
     try {
       const execute = new Function('Quantum', code);
       const circuitObj = execute(Quantum);
-      
+
       if (!circuitObj || typeof circuitObj.compile !== 'function') {
         throw new Error("Code must return a Quantum.Circuit object (e.g., 'return c;')");
       }
@@ -47,7 +47,7 @@ export default function Playground() {
           setIsSimulating(false);
           return;
         }
-        
+
         qc.run();
         const probabilities = qc.probabilities();
         setResults(probabilities);
@@ -84,9 +84,9 @@ export default function Playground() {
         <div className="flex items-center gap-4">
           {/* Autorun Toggle */}
           <label className="flex items-center gap-2 cursor-pointer select-none">
-            <input 
-              type="checkbox" 
-              checked={autoRun} 
+            <input
+              type="checkbox"
+              checked={autoRun}
               onChange={(e) => setAutoRun(e.target.checked)}
               className="sr-only peer"
             />
@@ -96,7 +96,7 @@ export default function Playground() {
             </span>
           </label>
 
-          <button 
+          <button
             onClick={compileAndSimulate}
             className="h-7 px-3 bg-cyan-600 hover:bg-cyan-500 text-white text-[10px] font-bold rounded transition-all flex items-center gap-1.5 active:scale-95"
           >
@@ -127,7 +127,7 @@ export default function Playground() {
                 <ResultsPanel results={results} isSimulating={isSimulating} />
              </div>
           </div>
-          
+
           {/* Bottom Half: Visualizer */}
           <div className="flex-1 overflow-hidden h-full">
              <VisualizerPanel qasm={qasm} />
