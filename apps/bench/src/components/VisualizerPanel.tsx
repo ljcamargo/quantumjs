@@ -58,6 +58,8 @@ export const VisualizerPanel = ({ qasm }: { qasm: string }) => {
             fitWidth={fitMode === 'both' || fitMode === 'width'}
             fitHeight={fitMode === 'both' || fitMode === 'height'}
             zoom={zoom}
+            interactive={true}
+            onHover={(info) => console.log('QirkVis hover:', info)}
             className={`${fitMode === 'none' ? '' : 'w-full h-full'} flex items-center justify-center`}
           />
         ) : (
