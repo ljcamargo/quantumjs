@@ -26,6 +26,8 @@ function isNonContentLine(line: string): boolean {
  *  - Multiple moment statements that originate from a single QASM line
  *    (e.g. `c = measure q;` expanding to one statement per qubit) all map
  *    to the same line number.
+ *  - Barriers additionally get a qubits-less fallback key since the SVG
+ *    only sets data-qv-moment + data-qv-barrier (no data-qv-qubits).
  */
 export function buildQasmLineMap(qasm: string): Map<string, number> {
   if (!qasm) return new Map();
@@ -42,10 +44,7 @@ export function buildQasmLineMap(qasm: string): Map<string, number> {
 
   for (let mi = 0; mi < moments.length; mi++) {
     for (const stmt of moments[mi]) {
-      // Try to advance to the next content line.
-      // If we can't advance past the end, the remaining statements in this
-      // and subsequent moments share the last-mapped line.
-      const prevLineIdx = lineIdx;
+      // Advance past any non-content lines to the next gate/measure/barrier line.
       while (lineIdx < lines.length && isNonContentLine(lines[lineIdx])) {
         lineIdx++;
       }
@@ -63,17 +62,22 @@ export function buildQasmLineMap(qasm: string): Map<string, number> {
       }
 
       // Format qubits to match HoverInfo.qubits.join(',')
-      // e.g. [{name:'q',index:0}, {name:'q',index:1}] → "q[0],q[1]"
       const qubitsStr = stmt.qubits
         .map((q: { name: string; index: number }) => `${q.name}[${q.index}]`)
         .join(',');
 
-      // Key format matches what the HoverInfo handler constructs
       const key = `${mi}:${stmt.name}:${qubitsStr}`;
       const lineNum = lineIdx + 1; // 1-indexed line number
       map.set(key, lineNum);
-      lastMappedLine = lineNum;
 
+      // Barriers: also store a qubits-less fallback key, because the barrier
+      // SVG element only has data-qv-moment + data-qv-barrier attributes (no
+      // data-qv-qubits), so HoverInfo.qubits will be undefined.
+      if (stmt.type === 'barrier') {
+        map.set(`${mi}:${stmt.name}:`, lineNum);
+      }
+
+      lastMappedLine = lineNum;
       lineIdx++;
     }
   }

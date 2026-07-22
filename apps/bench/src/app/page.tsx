@@ -84,7 +84,12 @@ export default function Playground() {
       const name = info.gateName || info.type;
       const qubitsStr = info.qubits?.join(',') || '';
       const key = `${info.momentIndex}:${name}:${qubitsStr}`;
-      const line = lineMap.get(key);
+      // Try full key first, then fall back to qubits-less key
+      // (used by barriers which have no data-qv-qubits in the SVG)
+      let line = lineMap.get(key);
+      if (line == null) {
+        line = lineMap.get(`${info.momentIndex}:${name}:`);
+      }
       setHighlightedLine(line ?? null);
     },
     [lineMap]
