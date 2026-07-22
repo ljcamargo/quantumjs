@@ -119,39 +119,42 @@ export const QasmPanel = ({ qasm, highlightedLine }: { qasm: string; highlighted
   );
 };
 
-export const ResultsPanel = ({ results, isSimulating }: { results: any, isSimulating: boolean }) => (
-  <Panel title="Probabilities" icon={<Layers size={14} />}>
-    <div className="p-4 h-full overflow-auto">
-      {isSimulating ? (
-        <div className="h-full flex flex-col items-center justify-center text-slate-600 gap-2">
-          <div className="w-8 h-8 border-2 border-slate-800 border-t-cyan-500 rounded-full animate-spin" />
-          <p className="text-[10px] font-medium">Simulating...</p>
-        </div>
-      ) : results ? (
-        <div className="space-y-3">
-          {Object.entries(results as Record<string, number>).map(([state, prob]) => (
-            <div key={state} className="space-y-1">
-              <div className="flex justify-between text-[10px] font-mono">
-                <span className="text-cyan-400">|{state}⟩</span>
-                <span className="text-slate-500">{(prob * 100).toFixed(1)}%</span>
+export const ResultsPanel = ({ results, isSimulating, momentLabel }: { results: any, isSimulating: boolean; momentLabel?: string }) => {
+  const panelTitle = momentLabel ? `Probabilities — ${momentLabel}` : 'Probabilities';
+  return (
+    <Panel title={panelTitle} icon={<Layers size={14} />}>
+      <div className="p-4 h-full overflow-auto">
+        {isSimulating ? (
+          <div className="h-full flex flex-col items-center justify-center text-slate-600 gap-2">
+            <div className="w-8 h-8 border-2 border-slate-800 border-t-cyan-500 rounded-full animate-spin" />
+            <p className="text-[10px] font-medium">Simulating...</p>
+          </div>
+        ) : results ? (
+          <div className="space-y-3">
+            {Object.entries(results as Record<string, number>).map(([state, prob]) => (
+              <div key={state} className="space-y-1">
+                <div className="flex justify-between text-[10px] font-mono">
+                  <span className="text-cyan-400">|{state}⟩</span>
+                  <span className="text-slate-500">{(prob * 100).toFixed(1)}%</span>
+                </div>
+                <div className="h-1.5 w-full bg-black/40 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-cyan-600 to-blue-500 transition-all duration-500"
+                    style={{ width: `${prob * 100}%` }}
+                  />
+                </div>
               </div>
-              <div className="h-1.5 w-full bg-black/40 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-cyan-600 to-blue-500 transition-all duration-500"
-                  style={{ width: `${prob * 100}%` }}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="h-full flex items-center justify-center text-slate-700 text-[10px] font-mono text-center">
-          Run to see results
-        </div>
-      )}
-    </div>
-  </Panel>
-);
+            ))}
+          </div>
+        ) : (
+          <div className="h-full flex items-center justify-center text-slate-700 text-[10px] font-mono text-center">
+            Run to see results
+          </div>
+        )}
+      </div>
+    </Panel>
+  );
+};
 
 export const ErrorDisplay = ({ error }: { error: string | null }) => {
   if (!error) return null;

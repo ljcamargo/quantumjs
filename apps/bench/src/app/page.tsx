@@ -10,6 +10,8 @@ import { EditorPanel, QasmPanel, ResultsPanel, ErrorDisplay } from '../component
 import { VisualizerPanel } from '../components/VisualizerPanel';
 import type { HoverInfo } from '@ljcamargo/quirkvis-react';
 import { buildQasmLineMap } from '../lib/qasmLineMap';
+import { analyzeProgressive, computeProgressiveCache } from '../lib/qasmProgressive';
+import type { ProgressiveAnalysis } from '../lib/qasmProgressive';
 
 import DEFAULT_CODE from '../samples/qft_sugar.quantumjs';
 
@@ -21,6 +23,11 @@ export default function Playground() {
   const [isSimulating, setIsSimulating] = useState(false);
   const [autoRun, setAutoRun] = useState(true);
   const [highlightedLine, setHighlightedLine] = useState<number | null>(null);
+  const [qasmSim, setQasmSim] = useState('');
+  const [hoveredMoment, setHoveredMoment] = useState<number | null>(null);
+  const [progressiveCache, setProgressiveCache] = useState<Map<number, Record<string, number>>>(new Map());
+  const [isProgressing, setIsProgressing] = useState(false);
+  const [progAnalysis, setProgAnalysis] = useState<ProgressiveAnalysis | null>(null);
 
   const compileAndSimulate = useCallback(() => {
     setError(null);
@@ -36,6 +43,7 @@ export default function Playground() {
       setQasm(outputQasm3);
 
       const outputQasm2 = circuitObj.compile({ version: '2.0' });
+      setQasmSim(outputQasm2);
 
       setIsSimulating(true);
       const qc = new QuantumCircuit();
@@ -55,6 +63,8 @@ export default function Playground() {
         const probabilities = qc.probabilities();
         setResults(probabilities);
         setIsSimulating(false);
+        setHoveredMoment(null);
+        setProgressiveCache(new Map());
       });
     } catch (e: unknown) {
       if (e instanceof Error) {
@@ -69,12 +79,17 @@ export default function Playground() {
   // Build a memoized map: "momentIndex:gateName:q[0],q[1]" → 1-indexed QASM line
   const lineMap = useMemo(() => buildQasmLineMap(qasm), [qasm]);
 
-  // On hover, resolve HoverInfo to a QASM line number
+  // On hover, resolve HoverInfo to a QASM line number + update hovered moment
   const handleHover = useCallback(
     (info: HoverInfo) => {
       if (info.type === 'none') {
         setHighlightedLine(null);
+        setHoveredMoment(null);
         return;
+      }
+      // Track which moment is being hovered (for progressive results)
+      if (info.momentIndex >= 0) {
+        setHoveredMoment(info.momentIndex);
       }
       // Only gates, measures, and barriers map to QASM lines
       if (info.type !== 'gate' && info.type !== 'measure' && info.type !== 'barrier') {
@@ -94,6 +109,50 @@ export default function Playground() {
     },
     [lineMap]
   );
+
+  // After full simulation completes, analyze progressive feasibility and pre-compute cache
+  useEffect(() => {
+    if (!qasm || !qasmSim || isSimulating) return;
+
+    const analysis = analyzeProgressive(qasm);
+    setProgAnalysis(analysis);
+
+    if (!analysis.enabled || analysis.momentCount <= 1) return;
+
+    let cancelled = false;
+    setIsProgressing(true);
+
+    computeProgressiveCache(qasmSim, qasm, analysis.momentCount)
+      .then((cache) => {
+        if (!cancelled) {
+          setProgressiveCache(cache);
+          setIsProgressing(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setIsProgressing(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [qasm, qasmSim, isSimulating]);
+
+  // Determine which results to display (progressive or full)
+  const displayResults = useMemo(() => {
+    if (hoveredMoment != null && progressiveCache.has(hoveredMoment)) {
+      return progressiveCache.get(hoveredMoment) ?? null;
+    }
+    return results;
+  }, [hoveredMoment, progressiveCache, results]);
+
+  // Build moment label for ResultsPanel
+  const momentLabel = useMemo(() => {
+    if (hoveredMoment == null || !progAnalysis) return undefined;
+    return progAnalysis.enabled
+      ? `Moment ${hoveredMoment + 1} / ${progAnalysis.momentCount}`
+      : undefined;
+  }, [hoveredMoment, progAnalysis]);
 
   useEffect(() => {
     if (!autoRun) return;
@@ -177,7 +236,7 @@ export default function Playground() {
                 <QasmPanel qasm={qasm} highlightedLine={highlightedLine} />
              </div>
              <div className="w-64 h-full">
-                <ResultsPanel results={results} isSimulating={isSimulating} />
+                <ResultsPanel results={displayResults} isSimulating={isSimulating || isProgressing} momentLabel={momentLabel} />
              </div>
           </div>
 
