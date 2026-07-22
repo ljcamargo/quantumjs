@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { Panel } from './Panels';
 import { Cpu, Maximize, ArrowLeftRight, ArrowUpDown, Search, Plus, Minus } from 'lucide-react';
 import { QuirkVis } from '@ljcamargo/quirkvis-react';
+import type { HoverInfo } from '@ljcamargo/quirkvis-react';
 import { themes } from '@ljcamargo/quirkvis-core';
 
-export const VisualizerPanel = ({ qasm }: { qasm: string }) => {
+export const VisualizerPanel = ({ qasm, onHover }: { qasm: string; onHover?: (info: HoverInfo) => void }) => {
   const [fitMode, setFitMode] = useState<'both' | 'width' | 'height' | 'none'>('both');
   const [zoom, setZoom] = useState(1);
 
@@ -59,7 +60,7 @@ export const VisualizerPanel = ({ qasm }: { qasm: string }) => {
             fitHeight={fitMode === 'both' || fitMode === 'height'}
             zoom={zoom}
             interactive={true}
-            onHover={(info) => console.log('QirkVis hover:', info)}
+            onHover={onHover || ((info) => console.log('QirkVis hover:', info))}
             className={`${fitMode === 'none' ? '' : 'w-full h-full'} flex items-center justify-center`}
           />
         ) : (

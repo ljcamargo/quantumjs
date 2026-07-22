@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Play, BookOpen } from 'lucide-react';
 // @ts-ignore
 import QuantumCircuit from 'quantum-circuit';
@@ -8,6 +8,8 @@ import * as Quantum from '@quantum-js/dsl';
 
 import { EditorPanel, QasmPanel, ResultsPanel, ErrorDisplay } from '../components/Panels';
 import { VisualizerPanel } from '../components/VisualizerPanel';
+import type { HoverInfo } from '@ljcamargo/quirkvis-react';
+import { buildQasmLineMap } from '../lib/qasmLineMap';
 
 import DEFAULT_CODE from '../samples/qft_sugar.quantumjs';
 
@@ -18,6 +20,7 @@ export default function Playground() {
   const [error, setError] = useState<string | null>(null);
   const [isSimulating, setIsSimulating] = useState(false);
   const [autoRun, setAutoRun] = useState(true);
+  const [highlightedLine, setHighlightedLine] = useState<number | null>(null);
 
   const compileAndSimulate = useCallback(() => {
     setError(null);
@@ -62,6 +65,30 @@ export default function Playground() {
       setIsSimulating(false);
     }
   }, [code]);
+
+  // Build a memoized map: "momentIndex:gateName:q[0],q[1]" → 1-indexed QASM line
+  const lineMap = useMemo(() => buildQasmLineMap(qasm), [qasm]);
+
+  // On hover, resolve HoverInfo to a QASM line number
+  const handleHover = useCallback(
+    (info: HoverInfo) => {
+      if (info.type === 'none') {
+        setHighlightedLine(null);
+        return;
+      }
+      // Only gates, measures, and barriers map to QASM lines
+      if (info.type !== 'gate' && info.type !== 'measure' && info.type !== 'barrier') {
+        setHighlightedLine(null);
+        return;
+      }
+      const name = info.gateName || info.type;
+      const qubitsStr = info.qubits?.join(',') || '';
+      const key = `${info.momentIndex}:${name}:${qubitsStr}`;
+      const line = lineMap.get(key);
+      setHighlightedLine(line ?? null);
+    },
+    [lineMap]
+  );
 
   useEffect(() => {
     if (!autoRun) return;
@@ -142,7 +169,7 @@ export default function Playground() {
           {/* Top Half: QASM & Results */}
           <div className="flex h-[40%] border-b border-white/5 flex-shrink-0">
              <div className="flex-1 border-r border-white/5 h-full">
-                <QasmPanel qasm={qasm} />
+                <QasmPanel qasm={qasm} highlightedLine={highlightedLine} />
              </div>
              <div className="w-64 h-full">
                 <ResultsPanel results={results} isSimulating={isSimulating} />
@@ -151,7 +178,7 @@ export default function Playground() {
 
           {/* Bottom Half: Visualizer */}
           <div className="flex-1 overflow-hidden h-full">
-             <VisualizerPanel qasm={qasm} />
+             <VisualizerPanel qasm={qasm} onHover={handleHover} />
           </div>
         </div>
       </main>

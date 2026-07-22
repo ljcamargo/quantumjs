@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useMemo, useEffect } from 'react';
 import Editor from 'react-simple-code-editor';
 // @ts-ignore
 import { highlight, languages } from 'prismjs/components/prism-core';
@@ -63,16 +63,61 @@ export const EditorPanel = ({ code, setCode }: { code: string, setCode: (c: stri
   </Panel>
 );
 
-export const QasmPanel = ({ qasm }: { qasm: string }) => (
-  <Panel title="Generated QASM 3.0" icon={<Terminal size={14} />}>
-    <div className="p-4 h-full overflow-auto">
-      <pre
-        className="text-[13px] font-mono text-cyan-500/80 whitespace-pre"
-        dangerouslySetInnerHTML={{ __html: highlight(qasm, languages.clike, 'clike') }}
-      />
-    </div>
-  </Panel>
-);
+export const QasmPanel = ({ qasm, highlightedLine }: { qasm: string; highlightedLine?: number | null }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const highlightedHtml = useMemo(
+    () => (qasm ? highlight(qasm, languages.clike, 'clike') : ''),
+    [qasm]
+  );
+
+  const lines = useMemo(() => {
+    if (!highlightedHtml) return [];
+    // Prism preserves newlines in the output, so we can split safely
+    return highlightedHtml.split('\n');
+  }, [highlightedHtml]);
+
+  // Scroll to highlighted line when it changes
+  useEffect(() => {
+    if (highlightedLine != null && containerRef.current) {
+      const target = containerRef.current.querySelector(
+        `[data-line="${highlightedLine}"]`
+      );
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+  }, [highlightedLine]);
+
+  return (
+    <Panel title="Generated QASM 3.0" icon={<Terminal size={14} />}>
+      <div ref={containerRef} className="p-4 h-full overflow-auto">
+        <pre className="text-[13px] font-mono text-cyan-500/80 whitespace-pre">
+          {lines.length === 0 ? (
+            <span className="text-slate-700">Waiting for QASM...</span>
+          ) : (
+            lines.map((lineHtml: string, i: number) => {
+              const lineNum = i + 1;
+              const isHighlighted = highlightedLine === lineNum;
+              return (
+                <div
+                  key={i}
+                  data-line={lineNum}
+                  className={`${
+                    isHighlighted
+                      ? 'bg-cyan-500/10 border-l-2 border-cyan-400 pl-2 -ml-3'
+                      : ''
+                  }`}
+                  dangerouslySetInnerHTML={{ __html: lineHtml || '\u00A0' }}
+                />
+              );
+            })
+          )}
+        </pre>
+      </div>
+    </Panel>
+  );
+};
 
 export const ResultsPanel = ({ results, isSimulating }: { results: any, isSimulating: boolean }) => (
   <Panel title="Probabilities" icon={<Layers size={14} />}>
