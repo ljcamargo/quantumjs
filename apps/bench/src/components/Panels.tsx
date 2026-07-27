@@ -1,11 +1,11 @@
-import React, { useRef, useMemo, useEffect } from 'react';
+import React, { useRef, useMemo, useEffect, useState, useCallback } from 'react';
 import Editor from 'react-simple-code-editor';
 // @ts-ignore
 import { highlight, languages } from 'prismjs/components/prism-core';
 import 'prismjs/components/prism-clike';
 import 'prismjs/components/prism-javascript';
 import 'prismjs/themes/prism-tomorrow.css';
-import { Terminal, Layers, Cpu, Code, Info } from 'lucide-react';
+import { Terminal, Layers, Cpu, Code, Info, FileCode, FolderOpen, Folder, ChevronRight, ChevronDown } from 'lucide-react';
 
 interface PanelProps {
   title: string;
@@ -151,6 +151,170 @@ export const ResultsPanel = ({ results, isSimulating, momentLabel }: { results: 
             Run to see results
           </div>
         )}
+      </div>
+    </Panel>
+  );
+};
+
+// ─── File tree node component (recursive) ─────────────────────────────────
+
+const TreeNode = ({
+  node,
+  depth,
+  activePath,
+  expandedDirs,
+  onToggle,
+  onSelect,
+}: {
+  node: { name: string; path: string; type: 'file' | 'directory'; children?: any[] };
+  depth: number;
+  activePath: string | null;
+  expandedDirs: Set<string>;
+  onToggle: (path: string) => void;
+  onSelect: (path: string) => void;
+}) => {
+  const isDir = node.type === 'directory';
+  const isExpanded = expandedDirs.has(node.path);
+  const isActive = !isDir && node.path === activePath;
+
+  return (
+    <li>
+      <button
+        onClick={() => (isDir ? onToggle(node.path) : onSelect(node.path))}
+        className={`w-full text-left flex items-center gap-1.5 py-1 px-2 rounded transition-colors ${
+          isActive
+            ? 'bg-cyan-500/15 text-cyan-300'
+            : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
+        }`}
+        style={{ paddingLeft: `${8 + depth * 14}px` }}
+      >
+        {isDir ? (
+          <>
+            <span className="flex-shrink-0 w-3.5 flex justify-center">
+              {isExpanded ? (
+                <ChevronDown size={10} className="text-slate-500" />
+              ) : (
+                <ChevronRight size={10} className="text-slate-500" />
+              )}
+            </span>
+            <Folder
+              size={13}
+              className={`flex-shrink-0 ${
+                isExpanded ? 'text-cyan-500' : 'text-slate-500'
+              }`}
+            />
+          </>
+        ) : (
+          <>
+            <span className="flex-shrink-0 w-3.5" />
+            <FileCode
+              size={13}
+              className={`flex-shrink-0 ${
+                isActive ? 'text-cyan-400' : 'text-slate-500'
+              }`}
+            />
+          </>
+        )}
+        <span className="text-[13px] font-medium truncate">{node.name}</span>
+      </button>
+
+      {isDir && isExpanded && node.children && (
+        <ul className="list-none m-0 p-0">
+          {node.children.map((child) => (
+            <TreeNode
+              key={child.path}
+              node={child}
+              depth={depth + 1}
+              activePath={activePath}
+              expandedDirs={expandedDirs}
+              onToggle={onToggle}
+              onSelect={onSelect}
+            />
+          ))}
+        </ul>
+      )}
+    </li>
+  );
+};
+
+export const SamplesPanel = ({
+  tree,
+  activePath,
+  onSelect,
+  onClose,
+}: {
+  tree: { name: string; path: string; type: 'file' | 'directory'; children?: any[] };
+  activePath: string | null;
+  onSelect: (path: string) => void;
+  onClose: () => void;
+}) => {
+  const [expandedDirs, setExpandedDirs] = useState<Set<string>>(() => {
+    // Root expanded by default; show samples/ contents directly
+    const dirs = new Set<string>();
+    if (tree.children) {
+      for (const child of tree.children) {
+        if (child.type === 'directory') dirs.add(child.path);
+      }
+    }
+    return dirs;
+  });
+
+  const toggleDir = useCallback((path: string) => {
+    setExpandedDirs((prev) => {
+      const next = new Set(prev);
+      if (next.has(path)) {
+        next.delete(path);
+      } else {
+        next.add(path);
+      }
+      return next;
+    });
+  }, []);
+
+  return (
+    <Panel
+      title="Explorer"
+      icon={<FolderOpen size={14} />}
+      headerAction={
+        <button
+          onClick={onClose}
+          className="text-slate-500 hover:text-slate-300 transition-colors p-0.5"
+          title="Close explorer"
+        >
+          <span className="text-[10px] font-bold">✕</span>
+        </button>
+      }
+    >
+      <div className="py-1 h-full overflow-auto text-[12px]">
+        {tree.children && tree.children.length > 0 ? (
+          <ul className="list-none m-0 p-0">
+            {tree.children.map((child) => (
+              <TreeNode
+                key={child.path}
+                node={child}
+                depth={0}
+                activePath={activePath}
+                expandedDirs={expandedDirs}
+                onToggle={toggleDir}
+                onSelect={onSelect}
+              />
+            ))}
+          </ul>
+        ) : (
+          <div className="px-4 py-8 text-center text-slate-600 text-[10px]">
+            No samples found
+          </div>
+        )}
+        {/* Stub for future file explorer actions */}
+        <div className="border-t border-white/5 mt-2 pt-2 px-3">
+          <button
+            disabled
+            className="w-full text-left py-1.5 px-2 rounded opacity-40 cursor-not-allowed flex items-center gap-2 text-slate-500"
+          >
+            <FolderOpen size={13} />
+            <span className="text-[10px]">Open file...</span>
+          </button>
+        </div>
       </div>
     </Panel>
   );

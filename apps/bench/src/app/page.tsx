@@ -1,19 +1,69 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Play, BookOpen } from 'lucide-react';
+import { Play, BookOpen, FolderOpen } from 'lucide-react';
 // @ts-ignore
 import QuantumCircuit from 'quantum-circuit';
 import * as Quantum from '@quantum-js/dsl';
 
-import { EditorPanel, QasmPanel, ResultsPanel, ErrorDisplay } from '../components/Panels';
+import { EditorPanel, QasmPanel, ResultsPanel, SamplesPanel, ErrorDisplay } from '../components/Panels';
 import { VisualizerPanel } from '../components/VisualizerPanel';
 import type { HoverInfo } from '@ljcamargo/quirkvis-react';
 import { buildQasmLineMap } from '../lib/qasmLineMap';
 import { analyzeProgressive, computeProgressiveCache } from '../lib/qasmProgressive';
 import type { ProgressiveAnalysis } from '../lib/qasmProgressive';
 
-import DEFAULT_CODE from '../samples/qft_sugar.quantumjs';
+import sampleEntries, { getSampleCode } from '../sampleRegistry';
+
+// Build a file tree from the flat entries array for the SamplesPanel
+type TreeNode = {
+  name: string;
+  path: string;
+  type: 'file' | 'directory';
+  children?: TreeNode[];
+};
+
+function buildSampleTree(entries: { path: string; code: string }[]): TreeNode {
+  const root: TreeNode = {
+    name: 'samples',
+    path: '',
+    type: 'directory',
+    children: [],
+  };
+
+  for (const entry of entries) {
+    const parts = entry.path.split('/');
+    let current = root;
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i];
+      if (i === parts.length - 1) {
+        current.children!.push({
+          name: part,
+          path: entry.path,
+          type: 'file',
+        });
+      } else {
+        let dir = current.children!.find(
+          (n): n is TreeNode => n.type === 'directory' && n.name === part
+        );
+        if (!dir) {
+          dir = {
+            name: part,
+            path: parts.slice(0, i + 1).join('/'),
+            type: 'directory',
+            children: [],
+          };
+          current.children!.push(dir);
+        }
+        current = dir;
+      }
+    }
+  }
+  return root;
+}
+
+const sampleTree = buildSampleTree(sampleEntries);
+const DEFAULT_CODE = getSampleCode('samples/qft_sugar.js')!;
 
 export default function Playground() {
   const [code, setCode] = useState(DEFAULT_CODE);
@@ -22,12 +72,14 @@ export default function Playground() {
   const [error, setError] = useState<string | null>(null);
   const [isSimulating, setIsSimulating] = useState(false);
   const [autoRun, setAutoRun] = useState(true);
+  const [activeSamplePath, setActiveSamplePath] = useState('samples/qft_sugar.js');
   const [highlightedLine, setHighlightedLine] = useState<number | null>(null);
   const [qasmSim, setQasmSim] = useState('');
   const [hoveredMoment, setHoveredMoment] = useState<number | null>(null);
   const [progressiveCache, setProgressiveCache] = useState<Map<number, Record<string, number>>>(new Map());
   const [isProgressing, setIsProgressing] = useState(false);
   const [progAnalysis, setProgAnalysis] = useState<ProgressiveAnalysis | null>(null);
+  const [showSamples, setShowSamples] = useState(false);
 
   const compileAndSimulate = useCallback(() => {
     setError(null);
@@ -171,6 +223,17 @@ export default function Playground() {
           <h1 className="text-sm font-bold tracking-tight text-white flex items-center gap-1.5">
             QuantumJS <span className="text-[8px] bg-white/10 px-1.5 py-0.5 rounded-full uppercase tracking-wider text-slate-400">Bench</span>
           </h1>
+          <button
+            onClick={() => setShowSamples((v) => !v)}
+            className={`h-6 ml-2 px-2 text-[10px] font-bold rounded transition-all flex items-center gap-1.5 ${
+              showSamples
+                ? 'bg-cyan-600 text-white'
+                : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-200'
+            }`}
+          >
+            <FolderOpen className="w-3 h-3" />
+            <span className="hidden sm:inline">Samples</span>
+          </button>
         </div>
         <div className="flex items-center gap-2">
           {/* Autorun Toggle */}
@@ -223,7 +286,23 @@ export default function Playground() {
         {/* Left Side: Editor (40%) */}
         <div className="w-[40%] flex flex-col border-r border-white/5 h-full">
           <div className="flex-1 overflow-hidden h-full">
-             <EditorPanel code={code} setCode={setCode} />
+            {showSamples ? (
+              <SamplesPanel
+                tree={sampleTree}
+                activePath={activeSamplePath}
+                onSelect={(path) => {
+                  const code = getSampleCode(path);
+                  if (code) {
+                    setCode(code);
+                    setActiveSamplePath(path);
+                    setShowSamples(false);
+                  }
+                }}
+                onClose={() => setShowSamples(false)}
+              />
+            ) : (
+              <EditorPanel code={code} setCode={setCode} />
+            )}
           </div>
           <ErrorDisplay error={error} />
         </div>

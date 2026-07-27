@@ -1,3 +1,4 @@
+import path from 'path';
 import type { NextConfig } from "next";
 import TerserPlugin from 'terser-webpack-plugin';
 
@@ -19,8 +20,10 @@ const nextConfig: NextConfig = {
         os: false,
       };
     }
+    // raw-loader for sample .js files (regular JS code that uses the Quantum global)
     config.module.rules.push({
-      test: /\.quantumjs$/,
+      test: /\.js$/,
+      include: path.resolve(__dirname, 'src/samples'),
       use: 'raw-loader',
     });
     return config;
