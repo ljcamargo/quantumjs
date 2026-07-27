@@ -30,8 +30,8 @@ export const Panel: React.FC<PanelProps> = ({ title, icon, children, className =
   </div>
 );
 
-export const EditorPanel = ({ code, setCode }: { code: string, setCode: (c: string) => void }) => (
-  <Panel title="DSL Input" icon={<Code size={14} />}>
+export const EditorPanel = ({ code, setCode, headerAction }: { code: string, setCode: (c: string) => void; headerAction?: React.ReactNode }) => (
+  <Panel title="DSL Input" icon={<Code size={14} />} headerAction={headerAction}>
     <div className="npm-editor h-full overflow-auto">
       <style dangerouslySetInnerHTML={{ __html: `
         .npm-editor textarea { outline: none !important; }
@@ -63,7 +63,7 @@ export const EditorPanel = ({ code, setCode }: { code: string, setCode: (c: stri
   </Panel>
 );
 
-export const QasmPanel = ({ qasm, highlightedLine }: { qasm: string; highlightedLine?: number | null }) => {
+export const QasmPanel = ({ qasm, highlightedLine, headerAction }: { qasm: string; highlightedLine?: number | null; headerAction?: React.ReactNode }) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   const highlightedHtml = useMemo(
@@ -90,7 +90,7 @@ export const QasmPanel = ({ qasm, highlightedLine }: { qasm: string; highlighted
   }, [highlightedLine]);
 
   return (
-    <Panel title="Generated QASM 3.0" icon={<Terminal size={14} />}>
+    <Panel title="Generated QASM 3.0" icon={<Terminal size={14} />} headerAction={headerAction}>
       <div ref={containerRef} className="p-4 h-full overflow-auto">
         <pre className="text-[13px] font-mono text-cyan-500/80 whitespace-pre">
           {lines.length === 0 ? (
@@ -119,10 +119,10 @@ export const QasmPanel = ({ qasm, highlightedLine }: { qasm: string; highlighted
   );
 };
 
-export const ResultsPanel = ({ results, isSimulating, momentLabel }: { results: any, isSimulating: boolean; momentLabel?: string }) => {
+export const ResultsPanel = ({ results, isSimulating, momentLabel, headerAction }: { results: any, isSimulating: boolean; momentLabel?: string; headerAction?: React.ReactNode }) => {
   const panelTitle = momentLabel ? `Probabilities — ${momentLabel}` : 'Probabilities';
   return (
-    <Panel title={panelTitle} icon={<Layers size={14} />}>
+    <Panel title={panelTitle} icon={<Layers size={14} />} headerAction={headerAction}>
       <div className="p-4 h-full overflow-auto">
         {isSimulating ? (
           <div className="h-full flex flex-col items-center justify-center text-slate-600 gap-2">
@@ -242,12 +242,35 @@ export const SamplesPanel = ({
   activePath,
   onSelect,
   onClose,
+  onFileOpen,
 }: {
   tree: { name: string; path: string; type: 'file' | 'directory'; children?: any[] };
   activePath: string | null;
   onSelect: (path: string) => void;
   onClose: () => void;
+  onFileOpen?: (code: string, filename: string) => void;
 }) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFilePick = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleFileChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file || !onFileOpen) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const content = reader.result as string;
+        onFileOpen(content, file.name);
+      };
+      reader.readAsText(file);
+      // Reset so the same file can be picked again
+      e.target.value = '';
+    },
+    [onFileOpen]
+  );
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(() => {
     // Root expanded by default; show samples/ contents directly
     const dirs = new Set<string>();
@@ -305,11 +328,23 @@ export const SamplesPanel = ({
             No samples found
           </div>
         )}
-        {/* Stub for future file explorer actions */}
+        {/* File input (hidden) */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".js"
+          className="hidden"
+          onChange={handleFileChange}
+        />
+        {/* Open local file action */}
         <div className="border-t border-white/5 mt-2 pt-2 px-3">
           <button
-            disabled
-            className="w-full text-left py-1.5 px-2 rounded opacity-40 cursor-not-allowed flex items-center gap-2 text-slate-500"
+            onClick={onFileOpen ? handleFilePick : undefined}
+            className={`w-full text-left py-1.5 px-2 rounded flex items-center gap-2 ${
+              onFileOpen
+                ? 'text-slate-500 hover:text-slate-200 hover:bg-white/[0.04] cursor-pointer'
+                : 'text-slate-600 cursor-not-allowed'
+            }`}
           >
             <FolderOpen size={13} />
             <span className="text-[10px]">Open file...</span>

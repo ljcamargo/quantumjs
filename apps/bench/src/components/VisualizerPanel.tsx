@@ -1,16 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { Panel } from './Panels';
-import { Cpu, Maximize, ArrowLeftRight, ArrowUpDown, Search, Plus, Minus } from 'lucide-react';
+import { Cpu, Maximize, ArrowLeftRight, ArrowUpDown, Search, Plus, Minus, Download } from 'lucide-react';
 import { QuirkVis } from '@ljcamargo/quirkvis-react';
 import type { HoverInfo } from '@ljcamargo/quirkvis-react';
 import { themes } from '@ljcamargo/quirkvis-core';
+import { downloadSvg } from '../lib/download';
 
 export const VisualizerPanel = ({ qasm, onHover }: { qasm: string; onHover?: (info: HoverInfo) => void }) => {
+  const svgContainerRef = useRef<HTMLDivElement>(null);
+
+  const handleDownloadSvg = useCallback(() => {
+    const svg = svgContainerRef.current?.querySelector('svg');
+    if (svg) {
+      downloadSvg('circuit.svg', svg as SVGSVGElement);
+    }
+  }, []);
   const [fitMode, setFitMode] = useState<'both' | 'width' | 'height' | 'none'>('both');
   const [zoom, setZoom] = useState(1);
 
   const headerAction = (
     <div className="flex items-center gap-1">
+      <button
+        onClick={handleDownloadSvg}
+        className="text-slate-500 hover:text-cyan-400 transition-colors p-0.5"
+        title="Download SVG"
+      >
+        <Download size={12} />
+      </button>
       <button
         onClick={() => setFitMode('both')}
         className={`p-1 rounded transition-colors ${fitMode === 'both' ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-500 hover:text-slate-300'}`}
@@ -51,7 +67,7 @@ export const VisualizerPanel = ({ qasm, onHover }: { qasm: string; onHover?: (in
 
   return (
     <Panel title="Circuit Visualizer" icon={<Cpu size={14} />} className="h-full" headerAction={headerAction}>
-      <div className="flex-1 flex items-center justify-center bg-black/20 overflow-auto p-4 relative h-full min-h-[150px]">
+      <div ref={svgContainerRef} className="flex-1 flex items-center justify-center bg-black/20 overflow-auto p-4 relative h-full min-h-[150px]">
         {qasm ? (
           <QuirkVis
             qasm={qasm}

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Play, BookOpen, FolderOpen } from 'lucide-react';
+import { Play, BookOpen, FolderOpen, Download } from 'lucide-react';
 // @ts-ignore
 import QuantumCircuit from 'quantum-circuit';
 import * as Quantum from '@quantum-js/dsl';
@@ -12,6 +12,7 @@ import type { HoverInfo } from '@ljcamargo/quirkvis-react';
 import { buildQasmLineMap } from '../lib/qasmLineMap';
 import { analyzeProgressive, computeProgressiveCache } from '../lib/qasmProgressive';
 import type { ProgressiveAnalysis } from '../lib/qasmProgressive';
+import { downloadText, downloadResultsCsv } from '../lib/download';
 
 import sampleEntries, { getSampleCode } from '../sampleRegistry';
 
@@ -80,6 +81,25 @@ export default function Playground() {
   const [isProgressing, setIsProgressing] = useState(false);
   const [progAnalysis, setProgAnalysis] = useState<ProgressiveAnalysis | null>(null);
   const [showSamples, setShowSamples] = useState(false);
+
+  // ─── download / file-open handlers ────────────────────────────────
+
+  const handleDownloadCode = useCallback(() => {
+    downloadText('circuit.js', code);
+  }, [code]);
+
+  const handleDownloadQasm = useCallback(() => {
+    downloadText('circuit.qasm', qasm);
+  }, [qasm]);
+
+  const handleDownloadResults = useCallback(() => {
+    if (results) downloadResultsCsv('results.csv', results);
+  }, [results]);
+
+  const handleFileOpen = useCallback((fileCode: string, _filename: string) => {
+    setCode(fileCode);
+    setShowSamples(false);
+  }, []);
 
   const compileAndSimulate = useCallback(() => {
     setError(null);
@@ -299,9 +319,22 @@ export default function Playground() {
                   }
                 }}
                 onClose={() => setShowSamples(false)}
+                onFileOpen={handleFileOpen}
               />
             ) : (
-              <EditorPanel code={code} setCode={setCode} />
+              <EditorPanel
+                code={code}
+                setCode={setCode}
+                headerAction={
+                  <button
+                    onClick={handleDownloadCode}
+                    className="text-slate-500 hover:text-cyan-400 transition-colors p-0.5"
+                    title="Download code"
+                  >
+                    <Download size={12} />
+                  </button>
+                }
+              />
             )}
           </div>
           <ErrorDisplay error={error} />
@@ -312,10 +345,37 @@ export default function Playground() {
           {/* Top Half: QASM & Results */}
           <div className="flex h-[40%] border-b border-white/5 flex-shrink-0">
              <div className="flex-1 border-r border-white/5 h-full">
-                <QasmPanel qasm={qasm} highlightedLine={highlightedLine} />
+                <QasmPanel
+                  qasm={qasm}
+                  highlightedLine={highlightedLine}
+                  headerAction={
+                    <button
+                      onClick={handleDownloadQasm}
+                      className="text-slate-500 hover:text-cyan-400 transition-colors p-0.5"
+                      title="Download QASM"
+                    >
+                      <Download size={12} />
+                    </button>
+                  }
+                />
              </div>
              <div className="w-64 h-full">
-                <ResultsPanel results={displayResults} isSimulating={isSimulating || isProgressing} momentLabel={momentLabel} />
+                <ResultsPanel
+                  results={displayResults}
+                  isSimulating={isSimulating || isProgressing}
+                  momentLabel={momentLabel}
+                  headerAction={
+                    displayResults ? (
+                      <button
+                        onClick={handleDownloadResults}
+                        className="text-slate-500 hover:text-cyan-400 transition-colors p-0.5"
+                        title="Download results CSV"
+                      >
+                        <Download size={12} />
+                      </button>
+                    ) : undefined
+                  }
+                />
              </div>
           </div>
 
