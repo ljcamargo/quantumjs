@@ -28,3 +28,5 @@ test_qc_compat.js
 test_qc_compat_v2.js
 packages/quantumjs/src/test_verify.ts
 test.html
+
+.pi

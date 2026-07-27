@@ -35,6 +35,40 @@ return c;
 
 The returned circuit is compiled and visualized automatically.
 
+## Interactive Circuit Visualization
+
+The circuit diagram is interactive. Hover over any gate, barrier, or measurement
+column to:
+
+- **Highlight the SVG element** — gates brighten, moment columns tint
+- **Highlight the corresponding QASM line** — the matching line in the
+  generated QASM panel gets a cyan background and left border accent,
+  and the panel scrolls to bring it into view
+
+This makes it easy to trace which line of QASM code produced which element
+in the circuit diagram.
+
+## Progressive Probability Evolution
+
+After the main simulation completes, the Bench pre-computes the probability
+distribution at **every moment** of the circuit (up to 8 qubits and 30 moments).
+Hover over any moment to see the intermediate state:
+
+```
+Moments:  0        1        2        3        4
+        [ H ]──[●]──[ H ]──[●]──[ H ]──[●]──[ H ]
+        q₀: 0%   q₀: 0%   q₀:50%  q₀:50%  q₀:50%
+        q₁: 0%   q₁: 0%   q₁: 0%   q₁:50%  q₁:50%
+        q₂:100%  q₂:100%  q₂:100%  q₂:100%  q₂:50%
+        q₃:100%  q₃:100%  q₃:100%  q₃:100%  q₃:50%
+```
+
+The results panel will show a badge like **"Moment 3 / 17"** when viewing
+intermediate results. Move the mouse away to return to the final distribution.
+
+This feature is automatically disabled for large circuits (>8 qubits or >30
+moments) to keep the simulation responsive.
+
 ## Default Sample
 
 When you first open the Bench, it loads a staircase comparison sample that demonstrates all four scoped layout loops side by side:
