@@ -4,6 +4,25 @@
 
 ### Added
 
+#### Samples Explorer & File Operations
+A full file-tree explorer panel for browsing and loading samples, plus
+download/copy/new-file actions across all panels.
+
+- **Samples Explorer** — Opens via the **Samples** button in the header.
+  Hierarchical file tree with collapsible directories, file icons, and
+  active-file highlighting. Replaces the editor panel (no layout squish).
+- **Open file...** — Hidden `<input type="file">` lets users load local `.js`
+  files into the editor via a file picker.
+- **Download buttons** — Every panel now has a download icon in its header:
+  `circuit.js` (editor), `circuit.qasm` (QASM), `results.csv` (probabilities),
+  `circuit.svg` (visualizer).
+- **Copy buttons** — Same locations, copies content to clipboard instead.
+- **New file button** — Clears the editor (`FilePlus` icon in editor header).
+- **Extension changed** — Sample files renamed from `.quantumjs` to `.js`.
+  Raw-loader scoped to `src/samples/` via `include` in webpack config.
+- **Barrel registry** — Samples registered in `src/sampleRegistry.ts` with
+  virtual filesystem paths (e.g. `"samples/qft_sugar.js"`).
+
 #### Interactive Circuit Visualization
 The circuit diagram is now interactive — hover over any gate, barrier, or
 measurement to see visual highlighting in the SVG.
@@ -39,8 +58,11 @@ intermediate state, enabling a "circuit evolution" visualization.
   hard-coded to `console.log`).
 - `QasmPanel` refactored from a single `<pre>` blob to individually wrapped
   lines, enabling per-line highlighting.
-- `ResultsPanel` now accepts a `momentLabel` prop to display the current moment
-  context during hover.
+- `ResultsPanel` now accepts `momentLabel` and `headerAction` props.
+- `EditorPanel` now accepts `headerAction` prop; title changed from
+  `"DSL Input"` to `"QuantumJS Editor"`.
+- Sample extension changed from `.quantumjs` to `.js` (regular JavaScript,
+  not a custom dialect).
 
 ### Under the Hood
 
@@ -48,3 +70,8 @@ intermediate state, enabling a "circuit evolution" visualization.
   number map via `CircuitAnalyzer` from quirkvis-core.
 - New utility: `src/lib/qasmProgressive.ts` — handles QASM truncation at moment
   boundaries and orchestrates background simulation caching.
+- New utility: `src/lib/download.ts` — shared download, copy, and CSV helpers.
+- New file: `src/sampleRegistry.ts` — barrel registry for sample files with
+  virtual filesystem paths.
+- Webpack raw-loader scoped to `src/samples/` directory via `include`.
+- Removed `src/lib/FileTree.ts` — tree building moved inline in page.tsx.

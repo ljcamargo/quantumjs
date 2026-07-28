@@ -16,6 +16,39 @@ It lets you write, visualize, and simulate quantum circuits in real time directl
 - Run statevector simulation and inspect results
 - Load and modify the built-in example circuits
 
+## The Editor
+
+The left panel is the **QuantumJS Editor** — a code editor where you write
+QuantumJS DSL code. Above the editor you'll find three icons:
+
+| Icon | Action |
+|------|--------|
+| `FilePlus` | New file — clears the editor to start fresh |
+| `Copy` | Copy source code to clipboard |
+| `Download` | Download source code as `circuit.js` |
+
+## Samples Explorer
+
+Click the **Samples** button (next to the logo in the header) to open the
+file tree explorer. The panel switches the editor area for a hierarchical
+file browser:
+
+```
+samples/
+├── qft_simple.js
+├── qft_sugar.js
+└── stairs_sample.js
+```
+
+- Click a file to load it into the editor
+- The currently active file is highlighted with a cyan background
+- The **Open file...** button at the bottom lets you load a `.js` file
+  from your local machine
+- Close the explorer with the ✕ button to return to the editor
+
+Samples are registered in `src/sampleRegistry.ts`. To add a new one, create
+a `.js` file in `src/samples/` and add an import + entry to the registry.
+
 ## Writing Code in the Bench
 
 The Bench exposes the full QuantumJS API via a global `Quantum` object. Your script should return a circuit or pipeline:
@@ -34,6 +67,39 @@ return c;
 ```
 
 The returned circuit is compiled and visualized automatically.
+
+## QASM Panel
+
+The QASM panel shows the compiled OpenQASM 3.0 output. Above the panel:
+
+| Icon | Action |
+|------|--------|
+| `Copy` | Copy QASM text to clipboard |
+| `Download` | Download QASM as `circuit.qasm` |
+
+## Probabilities Panel
+
+The probabilities panel shows the simulation results. When hovering over a
+moment in the circuit diagram, it switches to show the intermediate state
+with a **"Moment N / M"** badge. Above the panel:
+
+| Icon | Action |
+|------|--------|
+| `Copy` | Copy results as CSV to clipboard |
+| `Download` | Download results as `results.csv` |
+
+The CSV format has two columns: `state` and `probability_pct`.
+
+## Circuit Visualizer Panel
+
+The circuit diagram supports interactive features. Above the visualizer:
+
+| Icon | Action |
+|------|--------|
+| `Copy` | Copy SVG markup to clipboard |
+| `Download` | Download circuit diagram as `circuit.svg` |
+
+Zoom and fit controls are also available in the header.
 
 ## Interactive Circuit Visualization
 
