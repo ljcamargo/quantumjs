@@ -1,25 +1,40 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { Panel } from './Panels';
-import { Cpu, Maximize, ArrowLeftRight, ArrowUpDown, Search, Plus, Minus, Download } from 'lucide-react';
+import { Cpu, Maximize, ArrowLeftRight, ArrowUpDown, Search, Plus, Minus, Download, Copy } from 'lucide-react';
 import { QuirkVis } from '@ljcamargo/quirkvis-react';
 import type { HoverInfo } from '@ljcamargo/quirkvis-react';
 import { themes } from '@ljcamargo/quirkvis-core';
-import { downloadSvg } from '../lib/download';
+import { downloadSvg, copyToClipboard, svgToString } from '../lib/download';
 
 export const VisualizerPanel = ({ qasm, onHover }: { qasm: string; onHover?: (info: HoverInfo) => void }) => {
   const svgContainerRef = useRef<HTMLDivElement>(null);
 
-  const handleDownloadSvg = useCallback(() => {
+  const getSvgElement = useCallback((): SVGSVGElement | null => {
     const svg = svgContainerRef.current?.querySelector('svg');
-    if (svg) {
-      downloadSvg('circuit.svg', svg as SVGSVGElement);
-    }
+    return svg ? (svg as SVGSVGElement) : null;
   }, []);
+
+  const handleDownloadSvg = useCallback(() => {
+    const svg = getSvgElement();
+    if (svg) downloadSvg('circuit.svg', svg);
+  }, [getSvgElement]);
+
+  const handleCopySvg = useCallback(() => {
+    const svg = getSvgElement();
+    if (svg) copyToClipboard(svgToString(svg));
+  }, [getSvgElement]);
   const [fitMode, setFitMode] = useState<'both' | 'width' | 'height' | 'none'>('both');
   const [zoom, setZoom] = useState(1);
 
   const headerAction = (
     <div className="flex items-center gap-1">
+      <button
+        onClick={handleCopySvg}
+        className="text-slate-500 hover:text-cyan-400 transition-colors p-0.5"
+        title="Copy SVG"
+      >
+        <Copy size={12} />
+      </button>
       <button
         onClick={handleDownloadSvg}
         className="text-slate-500 hover:text-cyan-400 transition-colors p-0.5"

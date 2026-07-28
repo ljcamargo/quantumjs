@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Play, BookOpen, FolderOpen, Download } from 'lucide-react';
+import { Play, BookOpen, FolderOpen, Download, Copy, FilePlus } from 'lucide-react';
 // @ts-ignore
 import QuantumCircuit from 'quantum-circuit';
 import * as Quantum from '@quantum-js/dsl';
@@ -12,7 +12,7 @@ import type { HoverInfo } from '@ljcamargo/quirkvis-react';
 import { buildQasmLineMap } from '../lib/qasmLineMap';
 import { analyzeProgressive, computeProgressiveCache } from '../lib/qasmProgressive';
 import type { ProgressiveAnalysis } from '../lib/qasmProgressive';
-import { downloadText, downloadResultsCsv } from '../lib/download';
+import { downloadText, downloadResultsCsv, copyToClipboard, resultsToCsv } from '../lib/download';
 
 import sampleEntries, { getSampleCode } from '../sampleRegistry';
 
@@ -82,18 +82,34 @@ export default function Playground() {
   const [progAnalysis, setProgAnalysis] = useState<ProgressiveAnalysis | null>(null);
   const [showSamples, setShowSamples] = useState(false);
 
-  // ─── download / file-open handlers ────────────────────────────────
+  // ─── download / copy / file-open handlers ─────────────────────────
+
+  const handleNewCode = useCallback(() => {
+    setCode('');
+  }, []);
 
   const handleDownloadCode = useCallback(() => {
     downloadText('circuit.js', code);
+  }, [code]);
+
+  const handleCopyCode = useCallback(() => {
+    copyToClipboard(code);
   }, [code]);
 
   const handleDownloadQasm = useCallback(() => {
     downloadText('circuit.qasm', qasm);
   }, [qasm]);
 
+  const handleCopyQasm = useCallback(() => {
+    copyToClipboard(qasm);
+  }, [qasm]);
+
   const handleDownloadResults = useCallback(() => {
     if (results) downloadResultsCsv('results.csv', results);
+  }, [results]);
+
+  const handleCopyResults = useCallback(() => {
+    if (results) copyToClipboard(resultsToCsv(results));
   }, [results]);
 
   const handleFileOpen = useCallback((fileCode: string, _filename: string) => {
@@ -326,13 +342,29 @@ export default function Playground() {
                 code={code}
                 setCode={setCode}
                 headerAction={
-                  <button
-                    onClick={handleDownloadCode}
-                    className="text-slate-500 hover:text-cyan-400 transition-colors p-0.5"
-                    title="Download code"
-                  >
-                    <Download size={12} />
-                  </button>
+                  <div className="flex items-center gap-0.5">
+                    <button
+                      onClick={handleNewCode}
+                      className="text-slate-500 hover:text-cyan-400 transition-colors p-0.5"
+                      title="New file"
+                    >
+                      <FilePlus size={12} />
+                    </button>
+                    <button
+                      onClick={handleCopyCode}
+                      className="text-slate-500 hover:text-cyan-400 transition-colors p-0.5"
+                      title="Copy code"
+                    >
+                      <Copy size={12} />
+                    </button>
+                    <button
+                      onClick={handleDownloadCode}
+                      className="text-slate-500 hover:text-cyan-400 transition-colors p-0.5"
+                      title="Download code"
+                    >
+                      <Download size={12} />
+                    </button>
+                  </div>
                 }
               />
             )}
@@ -349,13 +381,22 @@ export default function Playground() {
                   qasm={qasm}
                   highlightedLine={highlightedLine}
                   headerAction={
-                    <button
-                      onClick={handleDownloadQasm}
-                      className="text-slate-500 hover:text-cyan-400 transition-colors p-0.5"
-                      title="Download QASM"
-                    >
-                      <Download size={12} />
-                    </button>
+                    <div className="flex items-center gap-0.5">
+                      <button
+                        onClick={handleCopyQasm}
+                        className="text-slate-500 hover:text-cyan-400 transition-colors p-0.5"
+                        title="Copy QASM"
+                      >
+                        <Copy size={12} />
+                      </button>
+                      <button
+                        onClick={handleDownloadQasm}
+                        className="text-slate-500 hover:text-cyan-400 transition-colors p-0.5"
+                        title="Download QASM"
+                      >
+                        <Download size={12} />
+                      </button>
+                    </div>
                   }
                 />
              </div>
@@ -366,13 +407,22 @@ export default function Playground() {
                   momentLabel={momentLabel}
                   headerAction={
                     displayResults ? (
-                      <button
-                        onClick={handleDownloadResults}
-                        className="text-slate-500 hover:text-cyan-400 transition-colors p-0.5"
-                        title="Download results CSV"
-                      >
-                        <Download size={12} />
-                      </button>
+                      <div className="flex items-center gap-0.5">
+                        <button
+                          onClick={handleCopyResults}
+                          className="text-slate-500 hover:text-cyan-400 transition-colors p-0.5"
+                          title="Copy results CSV"
+                        >
+                          <Copy size={12} />
+                        </button>
+                        <button
+                          onClick={handleDownloadResults}
+                          className="text-slate-500 hover:text-cyan-400 transition-colors p-0.5"
+                          title="Download results CSV"
+                        >
+                          <Download size={12} />
+                        </button>
+                      </div>
                     ) : undefined
                   }
                 />
