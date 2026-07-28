@@ -399,7 +399,7 @@ export class QBitProxy {
 
   u(params: (number | AST.Expression)[]) {
     const exprs = params.map(p => typeof p === 'number' ? { kind: 'Literal', value: p } as AST.Literal : p);
-    return this.addGate('u', undefined, exprs);
+    return this.addGate('U', undefined, exprs);
   }
 
   rx(theta: number | AST.Expression) {
