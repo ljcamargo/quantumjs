@@ -90,15 +90,29 @@ Rotation gate (3 Euler angles):
 Q.bit(0).u([theta, phi, lambda]);
 ```
 
-Parametric gates (use `pi` constant with `div`):
+### Parametric / Rotation Gates (`rx`, `ry`, `rz`)
+
+Built-in rotation gates emit native OpenQASM 3.0 `rx`, `ry`, `rz`:
 
 ```javascript
-Q.bit(0).rx(Q.π.div(2));  // Rx(π/2)
-Q.bit(0).ry(theta);
-Q.bit(0).rz(phi);
-// or via the pi helper:
-Q.bit(0).rx(pi.div(2));
+// Inside circuit callback (Q.π helpers):
+Q.bit(0).rx(Q.π.div(2));       // Rx(π/2)
+Q.bit(0).ry(Math.PI / 4);       // Ry(π/4) with raw JS number
+Q.bit(0).rz(Q.π.mult(0.5));     // Rz(π * 0.5)
+Q.bit(0).rx(Q.π.times(0.75));   // Rx(π * 0.75) — times is an alias for mult
+
+// At module level (standalone helpers):
+import { pi, div, mult } from '@quantum-js/dsl';
+Q.bit(0).ry(div(pi, 4));        // Ry(π/4)
+Q.bit(0).rz(mult(pi, 0.5));     // Rz(π * 0.5)
+
+// With raw JS Math:
+Q.bit(0).rx(Math.PI / 2);       // Rx(π/2)
 ```
+
+**Important:** `Q.π.div(n)` divides π by `n`. `Q.π.mult(n)` multiplies π by `n`.
+`Q.π.times(n)` is an alias for `mult`. At module level, use `div(pi, n)` and
+`mult(pi, n)` as standalone functions.
 
 ### Controlled Gates
 

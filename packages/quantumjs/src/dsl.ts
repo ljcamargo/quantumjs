@@ -23,12 +23,21 @@ export class Circuit {
   public div = (left: AST.Expression, right: number | AST.Expression): AST.Expression => {
     return div(left, right);
   };
+  public mult = (left: AST.Expression, right: number | AST.Expression): AST.Expression => {
+    return mult(left, right);
+  };
 
   // The greek letter gimmick proxy
   public π = {
     div: (right: number | AST.Expression): AST.Expression => {
       return div(pi, right);
-    }
+    },
+    mult: (right: number | AST.Expression): AST.Expression => {
+      return mult(pi, right);
+    },
+    times: (right: number | AST.Expression): AST.Expression => {
+      return mult(pi, right);
+    },
   };
 
   constructor(config: CircuitConfig) {
@@ -393,6 +402,21 @@ export class QBitProxy {
     return this.addGate('u', undefined, exprs);
   }
 
+  rx(theta: number | AST.Expression) {
+    const expr = typeof theta === 'number' ? { kind: 'Literal', value: theta } as AST.Literal : theta;
+    return this.addGate('rx', undefined, [expr]);
+  }
+
+  ry(theta: number | AST.Expression) {
+    const expr = typeof theta === 'number' ? { kind: 'Literal', value: theta } as AST.Literal : theta;
+    return this.addGate('ry', undefined, [expr]);
+  }
+
+  rz(phi: number | AST.Expression) {
+    const expr = typeof phi === 'number' ? { kind: 'Literal', value: phi } as AST.Literal : phi;
+    return this.addGate('rz', undefined, [expr]);
+  }
+
   cx(target: QBitProxy) { return this.addGate('cx', target); }
   cy(target: QBitProxy) { return this.addGate('cy', target); }
   cz(target: QBitProxy) { return this.addGate('cz', target); }
@@ -600,6 +624,15 @@ export function div(left: AST.Expression, right: number | AST.Expression): AST.E
     kind: 'BinaryExpression',
     left,
     operator: '/',
+    right: typeof right === 'number' ? { kind: 'Literal', value: right } : right,
+  };
+}
+
+export function mult(left: AST.Expression, right: number | AST.Expression): AST.Expression {
+  return {
+    kind: 'BinaryExpression',
+    left,
+    operator: '*',
     right: typeof right === 'number' ? { kind: 'Literal', value: right } : right,
   };
 }

@@ -71,6 +71,9 @@ Q.bit(0).h().x().y().z().s().s_().t().t_().id().reset();
 
 // Rotation Gates
 Q.bit(0).u([0.3, 0.2, 0.1]);
+Q.bit(0).rx(Q.π.div(2));   // Rx(π/2)
+Q.bit(0).ry(Math.PI / 4);   // Ry(π/4)
+Q.bit(0).rz(Q.π.mult(0.5)); // Rz(π*0.5) — π.mult() and π.times() are available
 
 // Controlled Gates
 Q.bit(0).cx(Q.bit(1)); // CNOT
