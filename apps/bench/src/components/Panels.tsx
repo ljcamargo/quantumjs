@@ -31,7 +31,7 @@ export const Panel: React.FC<PanelProps> = ({ title, icon, children, className =
 );
 
 export const EditorPanel = ({ code, setCode, headerAction }: { code: string, setCode: (c: string) => void; headerAction?: React.ReactNode }) => (
-  <Panel title="DSL Input" icon={<Code size={14} />} headerAction={headerAction}>
+  <Panel title="QuantumJS Editor" icon={<Code size={14} />} headerAction={headerAction}>
     <div className="npm-editor h-full overflow-auto">
       <style dangerouslySetInnerHTML={{ __html: `
         .npm-editor textarea { outline: none !important; }
@@ -308,7 +308,7 @@ export const SamplesPanel = ({
         </button>
       }
     >
-      <div className="py-1 h-full overflow-auto text-[12px]">
+      <div className="h-full overflow-auto text-[12px]">
         {tree.children && tree.children.length > 0 ? (
           <ul className="list-none m-0 p-0">
             {tree.children.map((child) => (
