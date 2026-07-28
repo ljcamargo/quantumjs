@@ -34,8 +34,15 @@ export function buildQasmLineMap(qasm: string): Map<string, number> {
 
   const lines = qasm.split('\n');
   const analyzer = new CircuitAnalyzer();
-  const analysis = analyzer.analyze(qasm);
-  const { moments } = analysis;
+  let moments: any[];
+  try {
+    const analysis = analyzer.analyze(qasm);
+    moments = analysis.moments;
+  } catch {
+    // qasm-ts parser may fail on certain QASM constructs;
+    // return empty map so highlighting simply doesn't show
+    return new Map();
+  }
 
   const map = new Map<string, number>();
 

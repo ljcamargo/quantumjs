@@ -42,8 +42,14 @@ export function analyzeProgressive(qasm: string): ProgressiveAnalysis {
   if (!qasm) return { enabled: false, momentCount: 0, qubitCount: 0 };
 
   const analyzer = new CircuitAnalyzer();
-  const analysis = analyzer.analyze(qasm);
-  const { moments, registers } = analysis;
+  let moments: any[], registers: any[];
+  try {
+    const analysis = analyzer.analyze(qasm);
+    moments = analysis.moments;
+    registers = analysis.registers;
+  } catch {
+    return { enabled: false, momentCount: 0, qubitCount: 0 };
+  }
 
   const qubitRegisters = registers.filter((r: any) => r.type === 'qubit');
   const qubitCount = qubitRegisters.reduce((sum: number, r: any) => sum + r.size, 0);
@@ -73,8 +79,13 @@ export function truncateQasmAtMoment(
 
   const lines = qasmSim.split('\n');
   const analyzer = new CircuitAnalyzer();
-  const analysis = analyzer.analyze(qasmVis);
-  const { moments } = analysis;
+  let moments: any[];
+  try {
+    const analysis = analyzer.analyze(qasmVis);
+    moments = analysis.moments;
+  } catch {
+    return qasmSim;
+  }
 
   if (upToMoment >= moments.length - 1) {
     // Last moment → return the full circuit unchanged
