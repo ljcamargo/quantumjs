@@ -4,9 +4,8 @@
 # ─────────────────────────────────────────────────────────────────────────────
 set -e
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-ROOT_DIR="$(dirname "$SCRIPT_DIR")"
-PKG_DIR="$ROOT_DIR/packages/quantumjs"
+ROOT="$(cd "$(dirname "$0")" && pwd)"
+PKG_DIR="$ROOT/packages/quantumjs"
 
 echo "═══════════════════════════════════════════════════════════════════════"
 echo " Publishing @quantum-js/dsl"
