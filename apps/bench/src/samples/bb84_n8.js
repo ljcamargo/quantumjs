@@ -1,66 +1,35 @@
-// bb84_n8 — BB84 quantum key distribution protocol (8 qubits)
-// Source: QASMBench/small/bb84_n8/bb84_n8.qasm
-// Uses: x, h, measure (with interleaved H gates between measurements)
+// BB84 quantum key distribution circuit (8 qubits)
+// Source: QASMBench - https://github.com/pnnl/QASMBench
+// Attribution: Cirq (https://github.com/quantumlib/cirq)
+// Generated from Cirq v0.8.0 — refactored with Q.bits()
 
-
-
-const c = Quantum.circuit({ qubits: 8 }, Q => {
-  // Round 1 basis preparations
+const c = Quantum.circuit({ qubits: 8, bits: 8 }, Q => {
+  // ── Initial state prep ─────────────────────
   Q.bit(0).x();
   Q.bit(1).h();
-  Q.bit(2).x();
-  Q.bit(3).x();
-  Q.bit(4).x();
-  Q.bit(5).x();
+  Q.bits([2, 3, 4, 5]).x();
   Q.bit(7).h();
 
-  // Measure q[6] first
-  Q.bit(6).measureTo(6);
+  // ── Round 1 ────────────────────────────────
+  Q.bit(6).measure();
+  Q.bits([5, 1, 2, 4, 7]).h();
 
-  // Basis changes before round 1 measurements
-  Q.bit(5).h();
-  Q.bit(1).h();
-  Q.bit(2).h();
-  Q.bit(4).h();
-  Q.bit(7).h();
+  // ── Round 2 measurements ───────────────────
+  Q.bits([0, 3, 1, 2, 4, 5, 7]).measure();
 
-  // Round 1 measurements
-  Q.bit(0).measureTo(0);
-  Q.bit(3).measureTo(3);
-  Q.bit(1).measureTo(1);
-  Q.bit(2).measureTo(2);
-  Q.bit(4).measureTo(4);
-  Q.bit(5).measureTo(5);
-  Q.bit(7).measureTo(7);
-
-  // Round 2 basis preparations
+  // ── State refresh & new basis ─────────────
   Q.bit(0).x();
   Q.bit(1).h();
-  Q.bit(2).x();
-  Q.bit(3).x();
-  Q.bit(4).x();
-  Q.bit(7).h();
-  Q.bit(5).h();
-  Q.bit(6).h();
-  Q.bit(2).h();
-  Q.bit(4).h();
-  Q.bit(1).h();
-  Q.bit(3).h();
-  Q.bit(7).h();
+  Q.bits([2, 3, 4]).x();
+  Q.bits([7, 5, 6, 2, 4, 1, 3, 7]).h();
 
-  // Round 2 measurements (reusing same classical bits)
-  Q.bit(0).measureTo(0);
-  Q.bit(5).measureTo(5);
-  Q.bit(6).measureTo(6);
+  // ── Round 3a measurements ─────────────────
+  Q.bits([0, 5, 6]).measure();
 
-  Q.bit(2).h();
-  Q.bit(4).h();
+  // ── Final basis flips ─────────────────────
+  Q.bits([2, 4]).h();
 
-  Q.bit(1).measureTo(1);
-  Q.bit(3).measureTo(3);
-  Q.bit(7).measureTo(7);
-  Q.bit(2).measureTo(2);
-  Q.bit(4).measureTo(4);
+  // ── Round 3b measurements ─────────────────
+  Q.bits([1, 3, 7, 2, 4]).measure();
 });
-
 return c;

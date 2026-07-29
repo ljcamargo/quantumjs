@@ -29,8 +29,6 @@ import adderN4Code from './samples/adder_n4.js';
 // @ts-expect-error — raw-loader provides string content
 import basisChangeN3Code from './samples/basis_change_n3.js';
 // @ts-expect-error — raw-loader provides string content
-import basisTrotterN4Code from './samples/basis_trotter_n4.js';
-// @ts-expect-error — raw-loader provides string content
 import bb84N8Code from './samples/bb84_n8.js';
 // @ts-expect-error — raw-loader provides string content
 import bellN4Code from './samples/bell_n4.js';
@@ -50,7 +48,6 @@ const entries: SampleEntry[] = [
   { path: 'samples/adder_n10.js', code: adderN10Code as string },
   { path: 'samples/adder_n4.js', code: adderN4Code as string },
   { path: 'samples/basis_change_n3.js', code: basisChangeN3Code as string },
-  { path: 'samples/basis_trotter_n4.js', code: basisTrotterN4Code as string },
   { path: 'samples/bb84_n8.js', code: bb84N8Code as string },
   { path: 'samples/bell_n4.js', code: bellN4Code as string },
   { path: 'samples/cat_state_n4.js', code: catStateN4Code as string },

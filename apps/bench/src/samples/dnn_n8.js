@@ -1,280 +1,680 @@
-// dnn_n8 — 8-qubit deep neural network circuit (Cirq generated)
-// Source: QASMBench/small/dnn_n8/dnn_n8.qasm
-// Uses: u3 (for rx/ry/rz), cx, with ZZ/YY/XX/CNOT/CZ decompositions
+// 8-qubit deep quantum neural network (16 dimensions)
+// Source: QASMBench - https://github.com/pnnl/QASMBench
+// Attribution: Reference (https://arxiv.org/abs/2012.00256)
+// Generated from Cirq v0.8.0
 
+const c = Quantum.circuit({ qubits: 8, bits: 8 }, Q => {
+  const θ = 0.3501408748;
+  const piA = Q.π.mult(0.5);
+  const piB = Q.π.mult(0.4);
+  const piC = Q.π.mult(1.5);
+  const piD = Q.π.mult(-0.5);
+  const piE = Q.π.mult(1);
+  const piF = Q.π.mult(1.1);
+  const piG = Q.π.mult(0.75);
+  const piH = Q.π.mult(0.25);
+  const piI = Q.π.mult(1.8);
+  const piJ = Q.π.mult(0.65);
+  const piK = Q.π.mult(0.3);
+  const piL = Q.π.mult(0.15);
+  const piM = Q.π.mult(0.05);
 
-// Helper: rx(theta) = u3(theta, -pi/2, pi/2)
-
-function rx(Q, qubit, theta) {
-  Q.bit(qubit).u([theta, -Math.PI / 2, Math.PI / 2]);
-}
-// Helper: ry(theta) = u3(theta, 0, 0)
-function ry(Q, qubit, theta) {
-  Q.bit(qubit).u([theta, 0, 0]);
-}
-// Helper: rz(phi) = u3(0, 0, phi)
-function rz(Q, qubit, phi) {
-  Q.bit(qubit).u([0, 0, phi]);
-}
-// Helper: u3 = u([theta, phi, lambda])
-function u3(Q, qubit, theta, phi, lambda) {
-  Q.bit(qubit).u([theta, phi, lambda]);
-}
-// Single qubit gate block
-function rotBlock(Q, qA, qB) {
-  const a = Math.PI * 0.3501408748;
-  rx(Q, qA, a); ry(Q, qA, a); rz(Q, qA, a);
-  rx(Q, qB, a); ry(Q, qB, a); rz(Q, qB, a);
-}
-// ZZ**1.1 decomposition
-function zzGate(Q, qA, qB) {
-  const p = Math.PI;
-  rz(Q, qA, p * 1.1); rz(Q, qB, p * 1.1);
-  u3(Q, qA, p * 0.5, 0, p * 0.25);
-  u3(Q, qB, p * 0.5, p, p * 0.75);
-  rx(Q, qA, p * 0.5);
-  Q.bit(qA).cx(Q.bit(qB));
-  rx(Q, qA, p * 0.4);
-  ry(Q, qB, p * 0.5);
-  Q.bit(qB).cx(Q.bit(qA));
-  rx(Q, qB, -p * 0.5);
-  rz(Q, qB, p * 0.5);
-  Q.bit(qA).cx(Q.bit(qB));
-  u3(Q, qA, p * 0.5, p * 0.65, p);
-  u3(Q, qB, p * 0.5, p * 0.15, 0);
-}
-// YY**1.1 decomposition
-function yyGate(Q, qA, qB) {
-  const p = Math.PI;
-  u3(Q, qA, 0, p, p * 0.5);
-  u3(Q, qB, 0, 0, p * 0.5);
-  rx(Q, qA, p * 0.5);
-  Q.bit(qA).cx(Q.bit(qB));
-  rx(Q, qA, p * 0.4);
-  ry(Q, qB, p * 0.5);
-  Q.bit(qB).cx(Q.bit(qA));
-  rx(Q, qB, -p * 0.5);
-  rz(Q, qB, p * 0.5);
-  Q.bit(qA).cx(Q.bit(qB));
-  u3(Q, qA, p, 0, p * 0.5);
-  u3(Q, qB, p, 0, p * 1.5);
-}
-// XX**1.1 decomposition
-function xxGate(Q, qA, qB) {
-  const p = Math.PI;
-  u3(Q, qA, p * 0.5, p * 1.5, p * 1.5);
-  u3(Q, qB, p * 0.5, p * 0.5, p * 1.5);
-  rx(Q, qA, p * 0.5);
-  Q.bit(qA).cx(Q.bit(qB));
-  rx(Q, qA, p * 0.4);
-  ry(Q, qB, p * 0.5);
-  Q.bit(qB).cx(Q.bit(qA));
-  rx(Q, qB, -p * 0.5);
-  rz(Q, qB, p * 0.5);
-  Q.bit(qA).cx(Q.bit(qB));
-  u3(Q, qA, p * 0.5, p * 0.5, p * 0.5);
-  u3(Q, qB, p * 0.5, p * 0.5, p * 1.5);
-}
-// CNOT**1.1 decomposition (control at qA, target at qB)
-function cnotGate(Q, qA, qB) {
-  const p = Math.PI;
-  ry(Q, qB, -p * 0.5);
-  u3(Q, qA, p * 0.5, 0, p * 0.25);
-  u3(Q, qB, p * 0.5, p, p * 0.75);
-  rx(Q, qA, p * 0.5);
-  Q.bit(qA).cx(Q.bit(qB));
-  rx(Q, qA, p * 0.05);
-  ry(Q, qB, p * 0.5);
-  Q.bit(qB).cx(Q.bit(qA));
-  rx(Q, qB, -p * 0.5);
-  rz(Q, qB, p * 0.5);
-  Q.bit(qA).cx(Q.bit(qB));
-  u3(Q, qA, p * 0.5, p * 0.3, p);
-  u3(Q, qB, p * 0.5, p * 1.8, 0);
-  ry(Q, qB, p * 0.5);
-}
-// CZ**1.1 decomposition
-function czGate(Q, qA, qB) {
-  const p = Math.PI;
-  u3(Q, qA, p * 0.5, 0, p * 0.25);
-  u3(Q, qB, p * 0.5, p, p * 0.75);
-  rx(Q, qA, p * 0.5);
-  Q.bit(qA).cx(Q.bit(qB));
-  rx(Q, qA, p * 0.05);
-  ry(Q, qB, p * 0.5);
-  Q.bit(qB).cx(Q.bit(qA));
-  rx(Q, qB, -p * 0.5);
-  rz(Q, qB, p * 0.5);
-  Q.bit(qA).cx(Q.bit(qB));
-  u3(Q, qA, p * 0.5, p * 0.3, p);
-  u3(Q, qB, p * 0.5, p * 1.8, 0);
-}
-
-const c = Quantum.circuit({ qubits: 8 }, Q => {
-  const a = Math.PI * 0.3501408748;
-  const p = Math.PI;
-
-  // ===== Layer 1: Pairs (0,1) =====
-  rotBlock(Q, 0, 1);
-  zzGate(Q, 0, 1);
-  yyGate(Q, 0, 1);
-  xxGate(Q, 0, 1);
-  rotBlock(Q, 0, 1);
-  rotBlock(Q, 2, 3);
-  zzGate(Q, 2, 3);
-  yyGate(Q, 2, 3);
-  xxGate(Q, 2, 3);
-  rotBlock(Q, 2, 3);
-  rotBlock(Q, 4, 5);
-  zzGate(Q, 4, 5);
-  yyGate(Q, 4, 5);
-  xxGate(Q, 4, 5);
-  rotBlock(Q, 4, 5);
-  rotBlock(Q, 6, 7);
-  zzGate(Q, 6, 7);
-  yyGate(Q, 6, 7);
-  xxGate(Q, 6, 7);
-  rotBlock(Q, 6, 7);
-
-  // Interleaved pairs (1,2), (3,4), (5,6), (7,0)
-  rotBlock(Q, 1, 2);
-  zzGate(Q, 1, 2);
-  yyGate(Q, 1, 2);
-  xxGate(Q, 1, 2);
-  rotBlock(Q, 1, 2);
-  rotBlock(Q, 3, 4);
-  zzGate(Q, 3, 4);
-  yyGate(Q, 3, 4);
-  xxGate(Q, 3, 4);
-  rotBlock(Q, 3, 4);
-  rotBlock(Q, 5, 6);
-  zzGate(Q, 5, 6);
-  yyGate(Q, 5, 6);
-  xxGate(Q, 5, 6);
-  rotBlock(Q, 5, 6);
-  rotBlock(Q, 7, 0);
-  zzGate(Q, 7, 0);
-  yyGate(Q, 7, 0);
-  xxGate(Q, 7, 0);
-  rotBlock(Q, 7, 0);
-
-  // Layer 2 rotation blocks
-  rotBlock(Q, 0, 1);
-  zzGate(Q, 0, 1);
-  yyGate(Q, 0, 1);
-  xxGate(Q, 0, 1);
-  rotBlock(Q, 0, 1);
-  rotBlock(Q, 2, 3);
-  zzGate(Q, 2, 3);
-  yyGate(Q, 2, 3);
-  xxGate(Q, 2, 3);
-  rotBlock(Q, 2, 3);
-  rotBlock(Q, 4, 5);
-  zzGate(Q, 4, 5);
-  yyGate(Q, 4, 5);
-  xxGate(Q, 4, 5);
-  rotBlock(Q, 4, 5);
-  rotBlock(Q, 6, 7);
-  zzGate(Q, 6, 7);
-  yyGate(Q, 6, 7);
-  xxGate(Q, 6, 7);
-  rotBlock(Q, 6, 7);
-
-  // Interleaved pairs (1,2), (3,4), (5,6), (7,0)
-  rotBlock(Q, 1, 2);
-  zzGate(Q, 1, 2);
-  yyGate(Q, 1, 2);
-  xxGate(Q, 1, 2);
-  rotBlock(Q, 1, 2);
-  rotBlock(Q, 3, 4);
-  zzGate(Q, 3, 4);
-  yyGate(Q, 3, 4);
-  xxGate(Q, 3, 4);
-  rotBlock(Q, 3, 4);
-  rotBlock(Q, 5, 6);
-  zzGate(Q, 5, 6);
-  yyGate(Q, 5, 6);
-  xxGate(Q, 5, 6);
-  rotBlock(Q, 5, 6);
-  rotBlock(Q, 7, 0);
-  zzGate(Q, 7, 0);
-  yyGate(Q, 7, 0);
-  xxGate(Q, 7, 0);
-  rotBlock(Q, 7, 0);
-
-  // ===== CNOT**1.1 gates =====
-  cnotGate(Q, 0, 1);
-  cnotGate(Q, 2, 3);
-  cnotGate(Q, 4, 5);
-  cnotGate(Q, 6, 7);
-
-  // ===== CZ**1.1 gates =====
-  czGate(Q, 0, 1);
-  czGate(Q, 2, 3);
-  czGate(Q, 4, 5);
-  czGate(Q, 6, 7);
-
-  // ===== More CNOT**1.1 on interleaved pairs =====
-  cnotGate(Q, 1, 2);
-  cnotGate(Q, 3, 4);
-  cnotGate(Q, 5, 6);
-  cnotGate(Q, 7, 0);
-
-  // ===== More CZ**1.1 on interleaved =====
-  czGate(Q, 1, 2);
-  czGate(Q, 3, 4);
-  czGate(Q, 5, 6);
-  czGate(Q, 7, 0);
-
-  // ===== Layer 3: ZZ/YY/XX pairs =====
-  rotBlock(Q, 0, 1);
-  zzGate(Q, 0, 1);
-  yyGate(Q, 0, 1);
-  xxGate(Q, 0, 1);
-  rotBlock(Q, 0, 1);
-  rotBlock(Q, 2, 3);
-  zzGate(Q, 2, 3);
-  yyGate(Q, 2, 3);
-  xxGate(Q, 2, 3);
-  rotBlock(Q, 2, 3);
-  rotBlock(Q, 4, 5);
-  zzGate(Q, 4, 5);
-  yyGate(Q, 4, 5);
-  xxGate(Q, 4, 5);
-  rotBlock(Q, 4, 5);
-  rotBlock(Q, 6, 7);
-  zzGate(Q, 6, 7);
-  yyGate(Q, 6, 7);
-  xxGate(Q, 6, 7);
-  rotBlock(Q, 6, 7);
-
-  // Interleaved
-  rotBlock(Q, 1, 2);
-  zzGate(Q, 1, 2);
-  yyGate(Q, 1, 2);
-  xxGate(Q, 1, 2);
-  rotBlock(Q, 1, 2);
-  rotBlock(Q, 3, 4);
-  zzGate(Q, 3, 4);
-  yyGate(Q, 3, 4);
-  xxGate(Q, 3, 4);
-  rotBlock(Q, 3, 4);
-  rotBlock(Q, 5, 6);
-  zzGate(Q, 5, 6);
-  yyGate(Q, 5, 6);
-  xxGate(Q, 5, 6);
-  rotBlock(Q, 5, 6);
-  rotBlock(Q, 7, 0);
-  zzGate(Q, 7, 0);
-  yyGate(Q, 7, 0);
-  xxGate(Q, 7, 0);
-  rotBlock(Q, 7, 0);
-
-  // Final rotation block
-  rotBlock(Q, 0, 1);
-
-  // Measure all
+  Q.bit(0).rx(θ).ry(θ).rz(θ);
+  Q.bit(1).rx(θ).ry(θ).rz(θ);
+  // ZZ**1.1
+  Q.bit(0).rz(piF);
+  Q.bit(1).rz(piF);
+  Q.bit(0).u([piA,0,piH]);
+  Q.bit(1).u([piA,piE,piG]);
+  Q.bit(0).rx(piA).cx(Q.bit(1)).rx(piB);
+  Q.bit(1).ry(piA).cx(Q.bit(0)).rx(piD).rz(piA);
+  Q.bit(0).cx(Q.bit(1));
+  Q.bit(0).u([piA,piJ,piE]);
+  Q.bit(1).u([piA,piL,0]);
+  // YY**1.1
+  Q.bit(0).u([0,piE,piA]);
+  Q.bit(1).u([0,0,piA]);
+  Q.bit(0).rx(piA).cx(Q.bit(1)).rx(piB);
+  Q.bit(1).ry(piA).cx(Q.bit(0)).rx(piD).rz(piA);
+  Q.bit(0).cx(Q.bit(1));
+  Q.bit(0).u([piE,0,piA]);
+  Q.bit(1).u([piE,0,piC]);
+  // XX**1.1
+  Q.bit(0).u([piA,piC,piC]);
+  Q.bit(1).u([piA,piA,piC]);
+  Q.bit(0).rx(piA).cx(Q.bit(1)).rx(piB);
+  Q.bit(1).ry(piA).cx(Q.bit(0)).rx(piD).rz(piA);
+  Q.bit(0).cx(Q.bit(1));
+  Q.bit(0).u([piA,piA,piA]);
+  Q.bit(1).u([piA,piA,piC]);
+  Q.bit(0).rx(θ).ry(θ).rz(θ);
+  Q.bit(1).rx(θ).ry(θ).rz(θ);
+  Q.bit(2).rx(θ).ry(θ).rz(θ);
+  Q.bit(3).rx(θ).ry(θ).rz(θ);
+  // ZZ**1.1
+  Q.bit(2).rz(piF);
+  Q.bit(3).rz(piF);
+  Q.bit(2).u([piA,0,piH]);
+  Q.bit(3).u([piA,piE,piG]);
+  Q.bit(2).rx(piA).cx(Q.bit(3)).rx(piB);
+  Q.bit(3).ry(piA).cx(Q.bit(2)).rx(piD).rz(piA);
+  Q.bit(2).cx(Q.bit(3));
+  Q.bit(2).u([piA,piJ,piE]);
+  Q.bit(3).u([piA,piL,0]);
+  // YY**1.1
+  Q.bit(2).u([0,piE,piA]);
+  Q.bit(3).u([0,0,piA]);
+  Q.bit(2).rx(piA).cx(Q.bit(3)).rx(piB);
+  Q.bit(3).ry(piA).cx(Q.bit(2)).rx(piD).rz(piA);
+  Q.bit(2).cx(Q.bit(3));
+  Q.bit(2).u([piE,0,piA]);
+  Q.bit(3).u([piE,0,piC]);
+  // XX**1.1
+  Q.bit(2).u([piA,piC,piC]);
+  Q.bit(3).u([piA,piA,piC]);
+  Q.bit(2).rx(piA).cx(Q.bit(3)).rx(piB);
+  Q.bit(3).ry(piA).cx(Q.bit(2)).rx(piD).rz(piA);
+  Q.bit(2).cx(Q.bit(3));
+  Q.bit(2).u([piA,piA,piA]);
+  Q.bit(3).u([piA,piA,piC]);
+  Q.bit(2).rx(θ).ry(θ).rz(θ);
+  Q.bit(3).rx(θ).ry(θ).rz(θ);
+  Q.bit(4).rx(θ).ry(θ).rz(θ);
+  Q.bit(5).rx(θ).ry(θ).rz(θ);
+  // ZZ**1.1
+  Q.bit(4).rz(piF);
+  Q.bit(5).rz(piF);
+  Q.bit(4).u([piA,0,piH]);
+  Q.bit(5).u([piA,piE,piG]);
+  Q.bit(4).rx(piA).cx(Q.bit(5)).rx(piB);
+  Q.bit(5).ry(piA).cx(Q.bit(4)).rx(piD).rz(piA);
+  Q.bit(4).cx(Q.bit(5));
+  Q.bit(4).u([piA,piJ,piE]);
+  Q.bit(5).u([piA,piL,0]);
+  // YY**1.1
+  Q.bit(4).u([0,piE,piA]);
+  Q.bit(5).u([0,0,piA]);
+  Q.bit(4).rx(piA).cx(Q.bit(5)).rx(piB);
+  Q.bit(5).ry(piA).cx(Q.bit(4)).rx(piD).rz(piA);
+  Q.bit(4).cx(Q.bit(5));
+  Q.bit(4).u([piE,0,piA]);
+  Q.bit(5).u([piE,0,piC]);
+  // XX**1.1
+  Q.bit(4).u([piA,piC,piC]);
+  Q.bit(5).u([piA,piA,piC]);
+  Q.bit(4).rx(piA).cx(Q.bit(5)).rx(piB);
+  Q.bit(5).ry(piA).cx(Q.bit(4)).rx(piD).rz(piA);
+  Q.bit(4).cx(Q.bit(5));
+  Q.bit(4).u([piA,piA,piA]);
+  Q.bit(5).u([piA,piA,piC]);
+  Q.bit(4).rx(θ).ry(θ).rz(θ);
+  Q.bit(5).rx(θ).ry(θ).rz(θ);
+  Q.bit(6).rx(θ).ry(θ).rz(θ);
+  Q.bit(7).rx(θ).ry(θ).rz(θ);
+  // ZZ**1.1
+  Q.bit(6).rz(piF);
+  Q.bit(7).rz(piF);
+  Q.bit(6).u([piA,0,piH]);
+  Q.bit(7).u([piA,piE,piG]);
+  Q.bit(6).rx(piA).cx(Q.bit(7)).rx(piB);
+  Q.bit(7).ry(piA).cx(Q.bit(6)).rx(piD).rz(piA);
+  Q.bit(6).cx(Q.bit(7));
+  Q.bit(6).u([piA,piJ,piE]);
+  Q.bit(7).u([piA,piL,0]);
+  // YY**1.1
+  Q.bit(6).u([0,piE,piA]);
+  Q.bit(7).u([0,0,piA]);
+  Q.bit(6).rx(piA).cx(Q.bit(7)).rx(piB);
+  Q.bit(7).ry(piA).cx(Q.bit(6)).rx(piD).rz(piA);
+  Q.bit(6).cx(Q.bit(7));
+  Q.bit(6).u([piE,0,piA]);
+  Q.bit(7).u([piE,0,piC]);
+  // XX**1.1
+  Q.bit(6).u([piA,piC,piC]);
+  Q.bit(7).u([piA,piA,piC]);
+  Q.bit(6).rx(piA).cx(Q.bit(7)).rx(piB);
+  Q.bit(7).ry(piA).cx(Q.bit(6)).rx(piD).rz(piA);
+  Q.bit(6).cx(Q.bit(7));
+  Q.bit(6).u([piA,piA,piA]);
+  Q.bit(7).u([piA,piA,piC]);
+  Q.bit(6).rx(θ).ry(θ).rz(θ);
+  Q.bit(7).rx(θ).ry(θ).rz(θ);
+  Q.bit(1).rx(θ).ry(θ).rz(θ);
+  Q.bit(2).rx(θ).ry(θ).rz(θ);
+  // ZZ**1.1
+  Q.bit(1).rz(piF);
+  Q.bit(2).rz(piF);
+  Q.bit(1).u([piA,0,piH]);
+  Q.bit(2).u([piA,piE,piG]);
+  Q.bit(1).rx(piA).cx(Q.bit(2)).rx(piB);
+  Q.bit(2).ry(piA).cx(Q.bit(1)).rx(piD).rz(piA);
+  Q.bit(1).cx(Q.bit(2));
+  Q.bit(1).u([piA,piJ,piE]);
+  Q.bit(2).u([piA,piL,0]);
+  // YY**1.1
+  Q.bit(1).u([0,piE,piA]);
+  Q.bit(2).u([0,0,piA]);
+  Q.bit(1).rx(piA).cx(Q.bit(2)).rx(piB);
+  Q.bit(2).ry(piA).cx(Q.bit(1)).rx(piD).rz(piA);
+  Q.bit(1).cx(Q.bit(2));
+  Q.bit(1).u([piE,0,piA]);
+  Q.bit(2).u([piE,0,piC]);
+  // XX**1.1
+  Q.bit(1).u([piA,piC,piC]);
+  Q.bit(2).u([piA,piA,piC]);
+  Q.bit(1).rx(piA).cx(Q.bit(2)).rx(piB);
+  Q.bit(2).ry(piA).cx(Q.bit(1)).rx(piD).rz(piA);
+  Q.bit(1).cx(Q.bit(2));
+  Q.bit(1).u([piA,piA,piA]);
+  Q.bit(2).u([piA,piA,piC]);
+  Q.bit(1).rx(θ).ry(θ).rz(θ);
+  Q.bit(2).rx(θ).ry(θ).rz(θ);
+  Q.bit(3).rx(θ).ry(θ).rz(θ);
+  Q.bit(4).rx(θ).ry(θ).rz(θ);
+  // ZZ**1.1
+  Q.bit(3).rz(piF);
+  Q.bit(4).rz(piF);
+  Q.bit(3).u([piA,0,piH]);
+  Q.bit(4).u([piA,piE,piG]);
+  Q.bit(3).rx(piA).cx(Q.bit(4)).rx(piB);
+  Q.bit(4).ry(piA).cx(Q.bit(3)).rx(piD).rz(piA);
+  Q.bit(3).cx(Q.bit(4));
+  Q.bit(3).u([piA,piJ,piE]);
+  Q.bit(4).u([piA,piL,0]);
+  // YY**1.1
+  Q.bit(3).u([0,piE,piA]);
+  Q.bit(4).u([0,0,piA]);
+  Q.bit(3).rx(piA).cx(Q.bit(4)).rx(piB);
+  Q.bit(4).ry(piA).cx(Q.bit(3)).rx(piD).rz(piA);
+  Q.bit(3).cx(Q.bit(4));
+  Q.bit(3).u([piE,0,piA]);
+  Q.bit(4).u([piE,0,piC]);
+  // XX**1.1
+  Q.bit(3).u([piA,piC,piC]);
+  Q.bit(4).u([piA,piA,piC]);
+  Q.bit(3).rx(piA).cx(Q.bit(4)).rx(piB);
+  Q.bit(4).ry(piA).cx(Q.bit(3)).rx(piD).rz(piA);
+  Q.bit(3).cx(Q.bit(4));
+  Q.bit(3).u([piA,piA,piA]);
+  Q.bit(4).u([piA,piA,piC]);
+  Q.bit(3).rx(θ).ry(θ).rz(θ);
+  Q.bit(4).rx(θ).ry(θ).rz(θ);
+  Q.bit(5).rx(θ).ry(θ).rz(θ);
+  Q.bit(6).rx(θ).ry(θ).rz(θ);
+  // ZZ**1.1
+  Q.bit(5).rz(piF);
+  Q.bit(6).rz(piF);
+  Q.bit(5).u([piA,0,piH]);
+  Q.bit(6).u([piA,piE,piG]);
+  Q.bit(5).rx(piA).cx(Q.bit(6)).rx(piB);
+  Q.bit(6).ry(piA).cx(Q.bit(5)).rx(piD).rz(piA);
+  Q.bit(5).cx(Q.bit(6));
+  Q.bit(5).u([piA,piJ,piE]);
+  Q.bit(6).u([piA,piL,0]);
+  // YY**1.1
+  Q.bit(5).u([0,piE,piA]);
+  Q.bit(6).u([0,0,piA]);
+  Q.bit(5).rx(piA).cx(Q.bit(6)).rx(piB);
+  Q.bit(6).ry(piA).cx(Q.bit(5)).rx(piD).rz(piA);
+  Q.bit(5).cx(Q.bit(6));
+  Q.bit(5).u([piE,0,piA]);
+  Q.bit(6).u([piE,0,piC]);
+  // XX**1.1
+  Q.bit(5).u([piA,piC,piC]);
+  Q.bit(6).u([piA,piA,piC]);
+  Q.bit(5).rx(piA).cx(Q.bit(6)).rx(piB);
+  Q.bit(6).ry(piA).cx(Q.bit(5)).rx(piD).rz(piA);
+  Q.bit(5).cx(Q.bit(6));
+  Q.bit(5).u([piA,piA,piA]);
+  Q.bit(6).u([piA,piA,piC]);
+  Q.bit(5).rx(θ).ry(θ).rz(θ);
+  Q.bit(6).rx(θ).ry(θ).rz(θ);
+  Q.bit(7).rx(θ).ry(θ).rz(θ);
+  Q.bit(0).rx(θ).ry(θ).rz(θ);
+  // ZZ**1.1
+  Q.bit(7).rz(piF);
+  Q.bit(0).rz(piF);
+  Q.bit(7).u([piA,0,piH]);
+  Q.bit(0).u([piA,piE,piG]);
+  Q.bit(7).rx(piA).cx(Q.bit(0)).rx(piB);
+  Q.bit(0).ry(piA).cx(Q.bit(7)).rx(piD).rz(piA);
+  Q.bit(7).cx(Q.bit(0));
+  Q.bit(7).u([piA,piJ,piE]);
+  Q.bit(0).u([piA,piL,0]);
+  // YY**1.1
+  Q.bit(7).u([0,piE,piA]);
+  Q.bit(0).u([0,0,piA]);
+  Q.bit(7).rx(piA).cx(Q.bit(0)).rx(piB);
+  Q.bit(0).ry(piA).cx(Q.bit(7)).rx(piD).rz(piA);
+  Q.bit(7).cx(Q.bit(0));
+  Q.bit(7).u([piE,0,piA]);
+  Q.bit(0).u([piE,0,piC]);
+  // XX**1.1
+  Q.bit(7).u([piA,piC,piC]);
+  Q.bit(0).u([piA,piA,piC]);
+  Q.bit(7).rx(piA).cx(Q.bit(0)).rx(piB);
+  Q.bit(0).ry(piA).cx(Q.bit(7)).rx(piD).rz(piA);
+  Q.bit(7).cx(Q.bit(0));
+  Q.bit(7).u([piA,piA,piA]);
+  Q.bit(0).u([piA,piA,piC]);
+  Q.bit(7).rx(θ).ry(θ).rz(θ);
+  Q.bit(0).rx(θ).ry(θ).rz(θ);
+  // CNOT**1.1
+  Q.bit(1).ry(piD);
+  Q.bit(0).u([piA,0,piH]);
+  Q.bit(1).u([piA,piE,piG]);
+  Q.bit(0).rx(piA);
+  Q.bit(0).cx(Q.bit(1));
+  Q.bit(0).rx(piM);
+  Q.bit(1).ry(piA).cx(Q.bit(0)).rx(piD).rz(piA);
+  Q.bit(0).cx(Q.bit(1));
+  Q.bit(0).u([piA,piK,piE]);
+  Q.bit(1).u([piA,piI,0]);
+  Q.bit(1).ry(piA);
+  // CNOT**1.1
+  Q.bit(3).ry(piD);
+  Q.bit(2).u([piA,0,piH]);
+  Q.bit(3).u([piA,piE,piG]);
+  Q.bit(2).rx(piA);
+  Q.bit(2).cx(Q.bit(3));
+  Q.bit(2).rx(piM);
+  Q.bit(3).ry(piA).cx(Q.bit(2)).rx(piD).rz(piA);
+  Q.bit(2).cx(Q.bit(3));
+  Q.bit(2).u([piA,piK,piE]);
+  Q.bit(3).u([piA,piI,0]);
+  Q.bit(3).ry(piA);
+  // CNOT**1.1
+  Q.bit(5).ry(piD);
+  Q.bit(4).u([piA,0,piH]);
+  Q.bit(5).u([piA,piE,piG]);
+  Q.bit(4).rx(piA);
+  Q.bit(4).cx(Q.bit(5));
+  Q.bit(4).rx(piM);
+  Q.bit(5).ry(piA).cx(Q.bit(4)).rx(piD).rz(piA);
+  Q.bit(4).cx(Q.bit(5));
+  Q.bit(4).u([piA,piK,piE]);
+  Q.bit(5).u([piA,piI,0]);
+  Q.bit(5).ry(piA);
+  // CNOT**1.1
+  Q.bit(7).ry(piD);
+  Q.bit(6).u([piA,0,piH]);
+  Q.bit(7).u([piA,piE,piG]);
+  Q.bit(6).rx(piA);
+  Q.bit(6).cx(Q.bit(7));
+  Q.bit(6).rx(piM);
+  Q.bit(7).ry(piA).cx(Q.bit(6)).rx(piD).rz(piA);
+  Q.bit(6).cx(Q.bit(7));
+  Q.bit(6).u([piA,piK,piE]);
+  Q.bit(7).u([piA,piI,0]);
+  Q.bit(7).ry(piA);
+  // CZ**1.1
+  Q.bit(0).u([piA,0,piH]);
+  Q.bit(1).u([piA,piE,piG]);
+  Q.bit(0).rx(piA);
+  Q.bit(0).cx(Q.bit(1));
+  Q.bit(0).rx(piM);
+  Q.bit(1).ry(piA).cx(Q.bit(0)).rx(piD).rz(piA);
+  Q.bit(0).cx(Q.bit(1));
+  Q.bit(0).u([piA,piK,piE]);
+  Q.bit(1).u([piA,piI,0]);
+  // CZ**1.1
+  Q.bit(2).u([piA,0,piH]);
+  Q.bit(3).u([piA,piE,piG]);
+  Q.bit(2).rx(piA);
+  Q.bit(2).cx(Q.bit(3));
+  Q.bit(2).rx(piM);
+  Q.bit(3).ry(piA).cx(Q.bit(2)).rx(piD).rz(piA);
+  Q.bit(2).cx(Q.bit(3));
+  Q.bit(2).u([piA,piK,piE]);
+  Q.bit(3).u([piA,piI,0]);
+  // CZ**1.1
+  Q.bit(4).u([piA,0,piH]);
+  Q.bit(5).u([piA,piE,piG]);
+  Q.bit(4).rx(piA);
+  Q.bit(4).cx(Q.bit(5));
+  Q.bit(4).rx(piM);
+  Q.bit(5).ry(piA).cx(Q.bit(4)).rx(piD).rz(piA);
+  Q.bit(4).cx(Q.bit(5));
+  Q.bit(4).u([piA,piK,piE]);
+  Q.bit(5).u([piA,piI,0]);
+  // CZ**1.1
+  Q.bit(6).u([piA,0,piH]);
+  Q.bit(7).u([piA,piE,piG]);
+  Q.bit(6).rx(piA);
+  Q.bit(6).cx(Q.bit(7));
+  Q.bit(6).rx(piM);
+  Q.bit(7).ry(piA).cx(Q.bit(6)).rx(piD).rz(piA);
+  Q.bit(6).cx(Q.bit(7));
+  Q.bit(6).u([piA,piK,piE]);
+  Q.bit(7).u([piA,piI,0]);
+  // CNOT**1.1
+  Q.bit(2).ry(piD);
+  Q.bit(1).u([piA,0,piH]);
+  Q.bit(2).u([piA,piE,piG]);
+  Q.bit(1).rx(piA);
+  Q.bit(1).cx(Q.bit(2));
+  Q.bit(1).rx(piM);
+  Q.bit(2).ry(piA).cx(Q.bit(1)).rx(piD).rz(piA);
+  Q.bit(1).cx(Q.bit(2));
+  Q.bit(1).u([piA,piK,piE]);
+  Q.bit(2).u([piA,piI,0]);
+  Q.bit(2).ry(piA);
+  // CNOT**1.1
+  Q.bit(4).ry(piD);
+  Q.bit(3).u([piA,0,piH]);
+  Q.bit(4).u([piA,piE,piG]);
+  Q.bit(3).rx(piA);
+  Q.bit(3).cx(Q.bit(4));
+  Q.bit(3).rx(piM);
+  Q.bit(4).ry(piA).cx(Q.bit(3)).rx(piD).rz(piA);
+  Q.bit(3).cx(Q.bit(4));
+  Q.bit(3).u([piA,piK,piE]);
+  Q.bit(4).u([piA,piI,0]);
+  Q.bit(4).ry(piA);
+  // CNOT**1.1
+  Q.bit(6).ry(piD);
+  Q.bit(5).u([piA,0,piH]);
+  Q.bit(6).u([piA,piE,piG]);
+  Q.bit(5).rx(piA);
+  Q.bit(5).cx(Q.bit(6));
+  Q.bit(5).rx(piM);
+  Q.bit(6).ry(piA).cx(Q.bit(5)).rx(piD).rz(piA);
+  Q.bit(5).cx(Q.bit(6));
+  Q.bit(5).u([piA,piK,piE]);
+  Q.bit(6).u([piA,piI,0]);
+  Q.bit(6).ry(piA);
+  // CNOT**1.1
+  Q.bit(0).ry(piD);
+  Q.bit(7).u([piA,0,piH]);
+  Q.bit(0).u([piA,piE,piG]);
+  Q.bit(7).rx(piA);
+  Q.bit(7).cx(Q.bit(0));
+  Q.bit(7).rx(piM);
+  Q.bit(0).ry(piA).cx(Q.bit(7)).rx(piD).rz(piA);
+  Q.bit(7).cx(Q.bit(0));
+  Q.bit(7).u([piA,piK,piE]);
+  Q.bit(0).u([piA,piI,0]);
+  Q.bit(0).ry(piA);
+  // CZ**1.1
+  Q.bit(1).u([piA,0,piH]);
+  Q.bit(2).u([piA,piE,piG]);
+  Q.bit(1).rx(piA);
+  Q.bit(1).cx(Q.bit(2));
+  Q.bit(1).rx(piM);
+  Q.bit(2).ry(piA).cx(Q.bit(1)).rx(piD).rz(piA);
+  Q.bit(1).cx(Q.bit(2));
+  Q.bit(1).u([piA,piK,piE]);
+  Q.bit(2).u([piA,piI,0]);
+  // CZ**1.1
+  Q.bit(3).u([piA,0,piH]);
+  Q.bit(4).u([piA,piE,piG]);
+  Q.bit(3).rx(piA);
+  Q.bit(3).cx(Q.bit(4));
+  Q.bit(3).rx(piM);
+  Q.bit(4).ry(piA).cx(Q.bit(3)).rx(piD).rz(piA);
+  Q.bit(3).cx(Q.bit(4));
+  Q.bit(3).u([piA,piK,piE]);
+  Q.bit(4).u([piA,piI,0]);
+  // CZ**1.1
+  Q.bit(5).u([piA,0,piH]);
+  Q.bit(6).u([piA,piE,piG]);
+  Q.bit(5).rx(piA);
+  Q.bit(5).cx(Q.bit(6));
+  Q.bit(5).rx(piM);
+  Q.bit(6).ry(piA).cx(Q.bit(5)).rx(piD).rz(piA);
+  Q.bit(5).cx(Q.bit(6));
+  Q.bit(5).u([piA,piK,piE]);
+  Q.bit(6).u([piA,piI,0]);
+  // CZ**1.1
+  Q.bit(7).u([piA,0,piH]);
+  Q.bit(0).u([piA,piE,piG]);
+  Q.bit(7).rx(piA);
+  Q.bit(7).cx(Q.bit(0));
+  Q.bit(7).rx(piM);
+  Q.bit(0).ry(piA).cx(Q.bit(7)).rx(piD).rz(piA);
+  Q.bit(7).cx(Q.bit(0));
+  Q.bit(7).u([piA,piK,piE]);
+  Q.bit(0).u([piA,piI,0]);
+  Q.bit(0).rx(θ).ry(θ).rz(θ);
+  Q.bit(1).rx(θ).ry(θ).rz(θ);
+  // ZZ**1.1
+  Q.bit(0).rz(piF);
+  Q.bit(1).rz(piF);
+  Q.bit(0).u([piA,0,piH]);
+  Q.bit(1).u([piA,piE,piG]);
+  Q.bit(0).rx(piA).cx(Q.bit(1)).rx(piB);
+  Q.bit(1).ry(piA).cx(Q.bit(0)).rx(piD).rz(piA);
+  Q.bit(0).cx(Q.bit(1));
+  Q.bit(0).u([piA,piJ,piE]);
+  Q.bit(1).u([piA,piL,0]);
+  // YY**1.1
+  Q.bit(0).u([0,piE,piA]);
+  Q.bit(1).u([0,0,piA]);
+  Q.bit(0).rx(piA).cx(Q.bit(1)).rx(piB);
+  Q.bit(1).ry(piA).cx(Q.bit(0)).rx(piD).rz(piA);
+  Q.bit(0).cx(Q.bit(1));
+  Q.bit(0).u([piE,0,piA]);
+  Q.bit(1).u([piE,0,piC]);
+  // XX**1.1
+  Q.bit(0).u([piA,piC,piC]);
+  Q.bit(1).u([piA,piA,piC]);
+  Q.bit(0).rx(piA).cx(Q.bit(1)).rx(piB);
+  Q.bit(1).ry(piA).cx(Q.bit(0)).rx(piD).rz(piA);
+  Q.bit(0).cx(Q.bit(1));
+  Q.bit(0).u([piA,piA,piA]);
+  Q.bit(1).u([piA,piA,piC]);
+  Q.bit(0).rx(θ).ry(θ).rz(θ);
+  Q.bit(1).rx(θ).ry(θ).rz(θ);
+  Q.bit(2).rx(θ).ry(θ).rz(θ);
+  Q.bit(3).rx(θ).ry(θ).rz(θ);
+  // ZZ**1.1
+  Q.bit(2).rz(piF);
+  Q.bit(3).rz(piF);
+  Q.bit(2).u([piA,0,piH]);
+  Q.bit(3).u([piA,piE,piG]);
+  Q.bit(2).rx(piA).cx(Q.bit(3)).rx(piB);
+  Q.bit(3).ry(piA).cx(Q.bit(2)).rx(piD).rz(piA);
+  Q.bit(2).cx(Q.bit(3));
+  Q.bit(2).u([piA,piJ,piE]);
+  Q.bit(3).u([piA,piL,0]);
+  // YY**1.1
+  Q.bit(2).u([0,piE,piA]);
+  Q.bit(3).u([0,0,piA]);
+  Q.bit(2).rx(piA).cx(Q.bit(3)).rx(piB);
+  Q.bit(3).ry(piA).cx(Q.bit(2)).rx(piD).rz(piA);
+  Q.bit(2).cx(Q.bit(3));
+  Q.bit(2).u([piE,0,piA]);
+  Q.bit(3).u([piE,0,piC]);
+  // XX**1.1
+  Q.bit(2).u([piA,piC,piC]);
+  Q.bit(3).u([piA,piA,piC]);
+  Q.bit(2).rx(piA).cx(Q.bit(3)).rx(piB);
+  Q.bit(3).ry(piA).cx(Q.bit(2)).rx(piD).rz(piA);
+  Q.bit(2).cx(Q.bit(3));
+  Q.bit(2).u([piA,piA,piA]);
+  Q.bit(3).u([piA,piA,piC]);
+  Q.bit(2).rx(θ).ry(θ).rz(θ);
+  Q.bit(3).rx(θ).ry(θ).rz(θ);
+  Q.bit(4).rx(θ).ry(θ).rz(θ);
+  Q.bit(5).rx(θ).ry(θ).rz(θ);
+  // ZZ**1.1
+  Q.bit(4).rz(piF);
+  Q.bit(5).rz(piF);
+  Q.bit(4).u([piA,0,piH]);
+  Q.bit(5).u([piA,piE,piG]);
+  Q.bit(4).rx(piA).cx(Q.bit(5)).rx(piB);
+  Q.bit(5).ry(piA).cx(Q.bit(4)).rx(piD).rz(piA);
+  Q.bit(4).cx(Q.bit(5));
+  Q.bit(4).u([piA,piJ,piE]);
+  Q.bit(5).u([piA,piL,0]);
+  // YY**1.1
+  Q.bit(4).u([0,piE,piA]);
+  Q.bit(5).u([0,0,piA]);
+  Q.bit(4).rx(piA).cx(Q.bit(5)).rx(piB);
+  Q.bit(5).ry(piA).cx(Q.bit(4)).rx(piD).rz(piA);
+  Q.bit(4).cx(Q.bit(5));
+  Q.bit(4).u([piE,0,piA]);
+  Q.bit(5).u([piE,0,piC]);
+  // XX**1.1
+  Q.bit(4).u([piA,piC,piC]);
+  Q.bit(5).u([piA,piA,piC]);
+  Q.bit(4).rx(piA).cx(Q.bit(5)).rx(piB);
+  Q.bit(5).ry(piA).cx(Q.bit(4)).rx(piD).rz(piA);
+  Q.bit(4).cx(Q.bit(5));
+  Q.bit(4).u([piA,piA,piA]);
+  Q.bit(5).u([piA,piA,piC]);
+  Q.bit(4).rx(θ).ry(θ).rz(θ);
+  Q.bit(5).rx(θ).ry(θ).rz(θ);
+  Q.bit(6).rx(θ).ry(θ).rz(θ);
+  Q.bit(7).rx(θ).ry(θ).rz(θ);
+  // ZZ**1.1
+  Q.bit(6).rz(piF);
+  Q.bit(7).rz(piF);
+  Q.bit(6).u([piA,0,piH]);
+  Q.bit(7).u([piA,piE,piG]);
+  Q.bit(6).rx(piA).cx(Q.bit(7)).rx(piB);
+  Q.bit(7).ry(piA).cx(Q.bit(6)).rx(piD).rz(piA);
+  Q.bit(6).cx(Q.bit(7));
+  Q.bit(6).u([piA,piJ,piE]);
+  Q.bit(7).u([piA,piL,0]);
+  // YY**1.1
+  Q.bit(6).u([0,piE,piA]);
+  Q.bit(7).u([0,0,piA]);
+  Q.bit(6).rx(piA).cx(Q.bit(7)).rx(piB);
+  Q.bit(7).ry(piA).cx(Q.bit(6)).rx(piD).rz(piA);
+  Q.bit(6).cx(Q.bit(7));
+  Q.bit(6).u([piE,0,piA]);
+  Q.bit(7).u([piE,0,piC]);
+  // XX**1.1
+  Q.bit(6).u([piA,piC,piC]);
+  Q.bit(7).u([piA,piA,piC]);
+  Q.bit(6).rx(piA).cx(Q.bit(7)).rx(piB);
+  Q.bit(7).ry(piA).cx(Q.bit(6)).rx(piD).rz(piA);
+  Q.bit(6).cx(Q.bit(7));
+  Q.bit(6).u([piA,piA,piA]);
+  Q.bit(7).u([piA,piA,piC]);
+  Q.bit(6).rx(θ).ry(θ).rz(θ);
+  Q.bit(7).rx(θ).ry(θ).rz(θ);
+  Q.bit(1).rx(θ).ry(θ).rz(θ);
+  Q.bit(2).rx(θ).ry(θ).rz(θ);
+  // ZZ**1.1
+  Q.bit(1).rz(piF);
+  Q.bit(2).rz(piF);
+  Q.bit(1).u([piA,0,piH]);
+  Q.bit(2).u([piA,piE,piG]);
+  Q.bit(1).rx(piA).cx(Q.bit(2)).rx(piB);
+  Q.bit(2).ry(piA).cx(Q.bit(1)).rx(piD).rz(piA);
+  Q.bit(1).cx(Q.bit(2));
+  Q.bit(1).u([piA,piJ,piE]);
+  Q.bit(2).u([piA,piL,0]);
+  // YY**1.1
+  Q.bit(1).u([0,piE,piA]);
+  Q.bit(2).u([0,0,piA]);
+  Q.bit(1).rx(piA).cx(Q.bit(2)).rx(piB);
+  Q.bit(2).ry(piA).cx(Q.bit(1)).rx(piD).rz(piA);
+  Q.bit(1).cx(Q.bit(2));
+  Q.bit(1).u([piE,0,piA]);
+  Q.bit(2).u([piE,0,piC]);
+  // XX**1.1
+  Q.bit(1).u([piA,piC,piC]);
+  Q.bit(2).u([piA,piA,piC]);
+  Q.bit(1).rx(piA).cx(Q.bit(2)).rx(piB);
+  Q.bit(2).ry(piA).cx(Q.bit(1)).rx(piD).rz(piA);
+  Q.bit(1).cx(Q.bit(2));
+  Q.bit(1).u([piA,piA,piA]);
+  Q.bit(2).u([piA,piA,piC]);
+  Q.bit(1).rx(θ).ry(θ).rz(θ);
+  Q.bit(2).rx(θ).ry(θ).rz(θ);
+  Q.bit(3).rx(θ).ry(θ).rz(θ);
+  Q.bit(4).rx(θ).ry(θ).rz(θ);
+  // ZZ**1.1
+  Q.bit(3).rz(piF);
+  Q.bit(4).rz(piF);
+  Q.bit(3).u([piA,0,piH]);
+  Q.bit(4).u([piA,piE,piG]);
+  Q.bit(3).rx(piA).cx(Q.bit(4)).rx(piB);
+  Q.bit(4).ry(piA).cx(Q.bit(3)).rx(piD).rz(piA);
+  Q.bit(3).cx(Q.bit(4));
+  Q.bit(3).u([piA,piJ,piE]);
+  Q.bit(4).u([piA,piL,0]);
+  // YY**1.1
+  Q.bit(3).u([0,piE,piA]);
+  Q.bit(4).u([0,0,piA]);
+  Q.bit(3).rx(piA).cx(Q.bit(4)).rx(piB);
+  Q.bit(4).ry(piA).cx(Q.bit(3)).rx(piD).rz(piA);
+  Q.bit(3).cx(Q.bit(4));
+  Q.bit(3).u([piE,0,piA]);
+  Q.bit(4).u([piE,0,piC]);
+  // XX**1.1
+  Q.bit(3).u([piA,piC,piC]);
+  Q.bit(4).u([piA,piA,piC]);
+  Q.bit(3).rx(piA).cx(Q.bit(4)).rx(piB);
+  Q.bit(4).ry(piA).cx(Q.bit(3)).rx(piD).rz(piA);
+  Q.bit(3).cx(Q.bit(4));
+  Q.bit(3).u([piA,piA,piA]);
+  Q.bit(4).u([piA,piA,piC]);
+  Q.bit(3).rx(θ).ry(θ).rz(θ);
+  Q.bit(4).rx(θ).ry(θ).rz(θ);
+  Q.bit(5).rx(θ).ry(θ).rz(θ);
+  Q.bit(6).rx(θ).ry(θ).rz(θ);
+  // ZZ**1.1
+  Q.bit(5).rz(piF);
+  Q.bit(6).rz(piF);
+  Q.bit(5).u([piA,0,piH]);
+  Q.bit(6).u([piA,piE,piG]);
+  Q.bit(5).rx(piA).cx(Q.bit(6)).rx(piB);
+  Q.bit(6).ry(piA).cx(Q.bit(5)).rx(piD).rz(piA);
+  Q.bit(5).cx(Q.bit(6));
+  Q.bit(5).u([piA,piJ,piE]);
+  Q.bit(6).u([piA,piL,0]);
+  // YY**1.1
+  Q.bit(5).u([0,piE,piA]);
+  Q.bit(6).u([0,0,piA]);
+  Q.bit(5).rx(piA).cx(Q.bit(6)).rx(piB);
+  Q.bit(6).ry(piA).cx(Q.bit(5)).rx(piD).rz(piA);
+  Q.bit(5).cx(Q.bit(6));
+  Q.bit(5).u([piE,0,piA]);
+  Q.bit(6).u([piE,0,piC]);
+  // XX**1.1
+  Q.bit(5).u([piA,piC,piC]);
+  Q.bit(6).u([piA,piA,piC]);
+  Q.bit(5).rx(piA).cx(Q.bit(6)).rx(piB);
+  Q.bit(6).ry(piA).cx(Q.bit(5)).rx(piD).rz(piA);
+  Q.bit(5).cx(Q.bit(6));
+  Q.bit(5).u([piA,piA,piA]);
+  Q.bit(6).u([piA,piA,piC]);
+  Q.bit(5).rx(θ).ry(θ).rz(θ);
+  Q.bit(6).rx(θ).ry(θ).rz(θ);
+  Q.bit(7).rx(θ).ry(θ).rz(θ);
+  Q.bit(0).rx(θ).ry(θ).rz(θ);
+  // ZZ**1.1
+  Q.bit(7).rz(piF);
+  Q.bit(0).rz(piF);
+  Q.bit(7).u([piA,0,piH]);
+  Q.bit(0).u([piA,piE,piG]);
+  Q.bit(7).rx(piA).cx(Q.bit(0)).rx(piB);
+  Q.bit(0).ry(piA).cx(Q.bit(7)).rx(piD).rz(piA);
+  Q.bit(7).cx(Q.bit(0));
+  Q.bit(7).u([piA,piJ,piE]);
+  Q.bit(0).u([piA,piL,0]);
+  // YY**1.1
+  Q.bit(7).u([0,piE,piA]);
+  Q.bit(0).u([0,0,piA]);
+  Q.bit(7).rx(piA).cx(Q.bit(0)).rx(piB);
+  Q.bit(0).ry(piA).cx(Q.bit(7)).rx(piD).rz(piA);
+  Q.bit(7).cx(Q.bit(0));
+  Q.bit(7).u([piE,0,piA]);
+  Q.bit(0).u([piE,0,piC]);
+  // XX**1.1
+  Q.bit(7).u([piA,piC,piC]);
+  Q.bit(0).u([piA,piA,piC]);
+  Q.bit(7).rx(piA).cx(Q.bit(0)).rx(piB);
+  Q.bit(0).ry(piA).cx(Q.bit(7)).rx(piD).rz(piA);
+  Q.bit(7).cx(Q.bit(0));
+  Q.bit(7).u([piA,piA,piA]);
+  Q.bit(0).u([piA,piA,piC]);
+  Q.bit(7).rx(θ).ry(θ).rz(θ);
+  Q.bit(0).rx(θ).ry(θ).rz(θ);
   Q.all().measure();
 });
-
 return c;

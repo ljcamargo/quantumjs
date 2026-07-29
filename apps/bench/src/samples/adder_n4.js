@@ -1,46 +1,34 @@
-// adder_n4 — 4-qubit quantum ripple-carry adder
-// Source: QASMBench/small/adder_n4/adder_n4.qasm
-// Uses: x, h, cx, t, tdg, s, measure
-
-
+// Quantum ripple-carry adder (4 qubits)
+// Source: QASMBench - https://github.com/pnnl/QASMBench
+// Attribution: Scaffold (https://github.com/epiqc/ScaffCC)
+// Based on Cuccaro et al, quant-ph/0410184
 
 const c = Quantum.circuit({ qubits: 4 }, Q => {
-  // Initialize: set input values
-  Q.bit(0).x();
-  Q.bit(1).x();
+  const a = "1" // Value A
+  const b = "1" // Value B
+  Q.input(a+b);
 
-  // Adder circuit
   Q.bit(3).h();
   Q.bit(2).cx(Q.bit(3));
 
-  Q.bit(0).t();
-  Q.bit(1).t();
-  Q.bit(2).t();
+  // T gate layer (q[0-2] get T, q[3] gets T†)
+  Q.bits([0, 1, 2]).t();
   Q.bit(3).t_();
 
-  Q.bit(0).cx(Q.bit(1));
-  Q.bit(2).cx(Q.bit(3));
-  Q.bit(3).cx(Q.bit(0));
-  Q.bit(1).cx(Q.bit(2));
-  Q.bit(0).cx(Q.bit(1));
-  Q.bit(2).cx(Q.bit(3));
-
-  Q.bit(0).t_();
-  Q.bit(1).t_();
-  Q.bit(2).t_();
+  // CX cross layer
+  Q.barrier();
+  Q.bits([0,2,3,1,0,2]).cx(Q.bits([1,3,0,2,1,3]));
+  Q.barrier();
+  
+  // T† inverse layer
+  Q.bits([0, 1, 2]).t_();
   Q.bit(3).t();
 
-  Q.bit(0).cx(Q.bit(1));
-  Q.bit(2).cx(Q.bit(3));
+  // CX cross layer (mirror)
+  Q.bits([0,2]).cx(Q.bits([1,3]));
 
-  Q.bit(3).s();
+  Q.bit(3).s().cx(Q.bit(0)).h();
 
-  Q.bit(3).cx(Q.bit(0));
-
-  Q.bit(3).h();
-
-  // Measure all
   Q.all().measure();
 });
-
 return c;
