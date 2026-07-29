@@ -30,3 +30,4 @@ packages/quantumjs/src/test_verify.ts
 test.html
 
 .pi
+.codegraph
