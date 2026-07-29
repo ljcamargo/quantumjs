@@ -1,5 +1,19 @@
 # Bench Changelog
 
+## 0.9.1 — 2026-07-28
+
+### Fixed
+
+- **`U` gate compliance** — Universal gate now emits uppercase `U(theta, phi, lambda)`
+  matching OpenQASM 3.0's `stdgates.inc`, fixing `MissingSemicolonError` in the
+  qasm-ts parser used by quirkvis-core's `CircuitAnalyzer`.
+- **CircuitAnalyzer error handling** — `buildQasmLineMap()` and
+  `qasmProgressive.ts` utilities now wrap `analyze()` in try/catch, so parser
+  failures degrade gracefully (no highlighting / no progressive mode) instead
+  of crashing.
+- **Dependencies** — `@ljcamargo/quirkvis-core` and `@ljcamargo/quirkvis-react`
+  updated to `0.2.2`.
+
 ## 0.2.0 — 2026-07-27
 
 ### Added

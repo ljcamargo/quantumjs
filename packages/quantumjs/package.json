@@ -1,6 +1,6 @@
 {
   "name": "@quantum-js/dsl",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "description": "A fluent DSL and AST-driven OpenQASM 3.0 compiler for building quantum circuits in JavaScript and TypeScript",
   "files": ["dist"],
   "main": "./dist/index.js",
