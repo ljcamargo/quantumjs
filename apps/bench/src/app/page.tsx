@@ -1,173 +1,41 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Play, BookOpen, FolderOpen, Download, Copy, FilePlus } from 'lucide-react';
-// @ts-ignore
-import QuantumCircuit from 'quantum-circuit';
-import * as Quantum from '@quantum-js/dsl';
 
 import { EditorPanel, QasmPanel, ResultsPanel, SamplesPanel, ErrorDisplay } from '../components/Panels';
 import { VisualizerPanel } from '../components/VisualizerPanel';
+import { GitHubIcon } from '../components/icons';
 import type { HoverInfo } from '@ljcamargo/quirkvis-react';
 import { buildQasmLineMap } from '../lib/qasmLineMap';
-import { analyzeProgressive, computeProgressiveCache } from '../lib/qasmProgressive';
-import type { ProgressiveAnalysis } from '../lib/qasmProgressive';
-import { downloadText, downloadResultsCsv, copyToClipboard, resultsToCsv } from '../lib/download';
-
+import { buildSampleTree } from '../lib/sampleTree';
+import { useSimulator } from '../hooks/useSimulator';
+import { useProgressive } from '../hooks/useProgressive';
+import { useFileActions } from '../hooks/useFileActions';
 import sampleEntries, { getSampleCode } from '../sampleRegistry';
-
-// Build a file tree from the flat entries array for the SamplesPanel
-type TreeNode = {
-  name: string;
-  path: string;
-  type: 'file' | 'directory';
-  children?: TreeNode[];
-};
-
-function buildSampleTree(entries: { path: string; code: string }[]): TreeNode {
-  const root: TreeNode = {
-    name: 'samples',
-    path: '',
-    type: 'directory',
-    children: [],
-  };
-
-  for (const entry of entries) {
-    const parts = entry.path.split('/');
-    let current = root;
-    for (let i = 0; i < parts.length; i++) {
-      const part = parts[i];
-      if (i === parts.length - 1) {
-        current.children!.push({
-          name: part,
-          path: entry.path,
-          type: 'file',
-        });
-      } else {
-        let dir = current.children!.find(
-          (n): n is TreeNode => n.type === 'directory' && n.name === part
-        );
-        if (!dir) {
-          dir = {
-            name: part,
-            path: parts.slice(0, i + 1).join('/'),
-            type: 'directory',
-            children: [],
-          };
-          current.children!.push(dir);
-        }
-        current = dir;
-      }
-    }
-  }
-  return root;
-}
 
 const sampleTree = buildSampleTree(sampleEntries);
 const DEFAULT_CODE = getSampleCode('samples/qft_sugar.js')!;
 
 export default function Playground() {
-  const [code, setCode] = useState(DEFAULT_CODE);
-  const [qasm, setQasm] = useState('');
-  const [results, setResults] = useState<Record<string, number> | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [isSimulating, setIsSimulating] = useState(false);
-  const [autoRun, setAutoRun] = useState(true);
-  const [activeSamplePath, setActiveSamplePath] = useState('samples/qft_sugar.js');
+  // Simulation pipeline (code → QASM → probabilities)
+  const sim = useSimulator(DEFAULT_CODE);
+  const { qasm, qasmSim, results, error, isSimulating, autoRun, setAutoRun, setCode } = sim;
+
+  // Progressive moment-by-moment results + hovered moment
+  const prog = useProgressive(qasm, qasmSim, isSimulating, results);
+  const { setHoveredMoment } = prog;
+
+  // Download / copy / new-file actions
+  const actions = useFileActions(sim.code, qasm, results, setCode);
+
+  // UI state
   const [highlightedLine, setHighlightedLine] = useState<number | null>(null);
-  const [qasmSim, setQasmSim] = useState('');
-  const [hoveredMoment, setHoveredMoment] = useState<number | null>(null);
-  const [progressiveCache, setProgressiveCache] = useState<Map<number, Record<string, number>>>(new Map());
-  const [isProgressing, setIsProgressing] = useState(false);
-  const [progAnalysis, setProgAnalysis] = useState<ProgressiveAnalysis | null>(null);
+  const [activeSamplePath, setActiveSamplePath] = useState('samples/qft_sugar.js');
   const [showSamples, setShowSamples] = useState(false);
 
-  // ─── download / copy / file-open handlers ─────────────────────────
-
-  const handleNewCode = useCallback(() => {
-    setCode('');
-  }, []);
-
-  const handleDownloadCode = useCallback(() => {
-    downloadText('circuit.js', code);
-  }, [code]);
-
-  const handleCopyCode = useCallback(() => {
-    copyToClipboard(code);
-  }, [code]);
-
-  const handleDownloadQasm = useCallback(() => {
-    downloadText('circuit.qasm', qasm);
-  }, [qasm]);
-
-  const handleCopyQasm = useCallback(() => {
-    copyToClipboard(qasm);
-  }, [qasm]);
-
-  const handleDownloadResults = useCallback(() => {
-    if (results) downloadResultsCsv('results.csv', results);
-  }, [results]);
-
-  const handleCopyResults = useCallback(() => {
-    if (results) copyToClipboard(resultsToCsv(results));
-  }, [results]);
-
-  const handleFileOpen = useCallback((fileCode: string, _filename: string) => {
-    setCode(fileCode);
-    setShowSamples(false);
-  }, []);
-
-  const compileAndSimulate = useCallback(() => {
-    setError(null);
-    try {
-      const execute = new Function('Quantum', code);
-      const circuitObj = execute(Quantum);
-
-      if (!circuitObj || typeof circuitObj.compile !== 'function') {
-        throw new Error("Code must return a Quantum.Circuit object (e.g., 'return c;')");
-      }
-
-      const outputQasm3 = circuitObj.compile({ version: '3.0' });
-      setQasm(outputQasm3);
-
-      const outputQasm2 = circuitObj.compile({ version: '2.0' });
-      setQasmSim(outputQasm2);
-
-      setIsSimulating(true);
-      const qc = new QuantumCircuit();
-      qc.importQASM(outputQasm2, (err: any) => {
-        if (err && Array.isArray(err) && err.length > 0) {
-          const messages = err.map((e: any) => `Line ${e.line}: ${e.msg}`).join('\n');
-          setError(`Simulation Error:\n${messages}`);
-          setIsSimulating(false);
-          return;
-        } else if (err && typeof err === 'string') {
-          setError(`Simulation Error: ${err}`);
-          setIsSimulating(false);
-          return;
-        }
-
-        qc.run();
-        const probabilities = qc.probabilities();
-        setResults(probabilities);
-        setIsSimulating(false);
-        setHoveredMoment(null);
-        setProgressiveCache(new Map());
-      });
-    } catch (e: unknown) {
-      if (e instanceof Error) {
-        setError(e.message);
-      } else {
-        setError(String(e));
-      }
-      setIsSimulating(false);
-    }
-  }, [code]);
-
-  // Build a memoized map: "momentIndex:gateName:q[0],q[1]" → 1-indexed QASM line
+  // Hover → QASM line + moment
   const lineMap = useMemo(() => buildQasmLineMap(qasm), [qasm]);
-
-  // On hover, resolve HoverInfo to a QASM line number + update hovered moment
   const handleHover = useCallback(
     (info: HoverInfo) => {
       if (info.type === 'none') {
@@ -175,11 +43,7 @@ export default function Playground() {
         setHoveredMoment(null);
         return;
       }
-      // Track which moment is being hovered (for progressive results)
-      if (info.momentIndex >= 0) {
-        setHoveredMoment(info.momentIndex);
-      }
-      // Only gates, measures, and barriers map to QASM lines
+      if (info.momentIndex >= 0) setHoveredMoment(info.momentIndex);
       if (info.type !== 'gate' && info.type !== 'measure' && info.type !== 'barrier') {
         setHighlightedLine(null);
         return;
@@ -187,70 +51,36 @@ export default function Playground() {
       const name = info.gateName || info.type;
       const qubitsStr = info.qubits?.join(',') || '';
       const key = `${info.momentIndex}:${name}:${qubitsStr}`;
-      // Try full key first, then fall back to qubits-less key
-      // (used by barriers which have no data-qv-qubits in the SVG)
       let line = lineMap.get(key);
-      if (line == null) {
-        line = lineMap.get(`${info.momentIndex}:${name}:`);
-      }
+      if (line == null) line = lineMap.get(`${info.momentIndex}:${name}:`);
       setHighlightedLine(line ?? null);
     },
-    [lineMap]
+    [lineMap, setHoveredMoment]
   );
 
-  // After full simulation completes, analyze progressive feasibility and pre-compute cache
-  useEffect(() => {
-    if (!qasm || !qasmSim || isSimulating) return;
+  const handleSelectSample = useCallback(
+    (path: string) => {
+      const code = getSampleCode(path);
+      if (code) {
+        setCode(code);
+        setActiveSamplePath(path);
+        setShowSamples(false);
+      }
+    },
+    [setCode]
+  );
 
-    const analysis = analyzeProgressive(qasm);
-    setProgAnalysis(analysis);
-
-    if (!analysis.enabled || analysis.momentCount <= 1) return;
-
-    let cancelled = false;
-    setIsProgressing(true);
-
-    computeProgressiveCache(qasmSim, qasm, analysis.momentCount)
-      .then((cache) => {
-        if (!cancelled) {
-          setProgressiveCache(cache);
-          setIsProgressing(false);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setIsProgressing(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [qasm, qasmSim, isSimulating]);
-
-  // Determine which results to display (progressive or full)
-  const displayResults = useMemo(() => {
-    if (hoveredMoment != null && progressiveCache.has(hoveredMoment)) {
-      return progressiveCache.get(hoveredMoment) ?? null;
-    }
-    return results;
-  }, [hoveredMoment, progressiveCache, results]);
-
-  // Build moment label for ResultsPanel
-  const momentLabel = useMemo(() => {
-    if (hoveredMoment == null || !progAnalysis) return undefined;
-    return progAnalysis.enabled
-      ? `Moment ${hoveredMoment + 1} / ${progAnalysis.momentCount}`
-      : undefined;
-  }, [hoveredMoment, progAnalysis]);
-
-  useEffect(() => {
-    if (!autoRun) return;
-    const timer = setTimeout(compileAndSimulate, 1000);
-    return () => clearTimeout(timer);
-  }, [compileAndSimulate, autoRun]);
+  const handleFileOpen = useCallback(
+    (fileCode: string) => {
+      setCode(fileCode);
+      setShowSamples(false);
+    },
+    [setCode]
+  );
 
   return (
     <div className="flex flex-col h-screen bg-[#0a0a0c] text-slate-200 font-sans overflow-hidden">
-      {/* Header - More compact */}
+      {/* Header */}
       <header className="h-10 border-b border-white/5 bg-black/40 backdrop-blur-xl flex items-center justify-between px-4 flex-shrink-0">
         <div className="flex items-center gap-2">
           <div className="w-5 h-5 flex items-center justify-center">
@@ -287,7 +117,7 @@ export default function Playground() {
           </label>
 
           <button
-            onClick={compileAndSimulate}
+            onClick={sim.run}
             className="h-7 px-3 bg-cyan-600 hover:bg-cyan-500 text-white text-[10px] font-bold rounded transition-all flex items-center gap-1.5 active:scale-95"
           >
             <Play className="w-3 h-3 fill-current" />
@@ -309,9 +139,7 @@ export default function Playground() {
             rel="noopener noreferrer"
             className="h-7 px-3 bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white text-[10px] font-bold rounded transition-all flex items-center gap-1.5"
           >
-            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
-            </svg>
+            <GitHubIcon />
             GitHub
           </a>
         </div>
@@ -326,42 +154,23 @@ export default function Playground() {
               <SamplesPanel
                 tree={sampleTree}
                 activePath={activeSamplePath}
-                onSelect={(path) => {
-                  const code = getSampleCode(path);
-                  if (code) {
-                    setCode(code);
-                    setActiveSamplePath(path);
-                    setShowSamples(false);
-                  }
-                }}
+                onSelect={handleSelectSample}
                 onClose={() => setShowSamples(false)}
                 onFileOpen={handleFileOpen}
               />
             ) : (
               <EditorPanel
-                code={code}
+                code={sim.code}
                 setCode={setCode}
                 headerAction={
                   <div className="flex items-center gap-0.5">
-                    <button
-                      onClick={handleNewCode}
-                      className="text-slate-500 hover:text-cyan-400 transition-colors p-0.5"
-                      title="New file"
-                    >
+                    <button onClick={actions.handleNewCode} className="text-slate-500 hover:text-cyan-400 transition-colors p-0.5" title="New file">
                       <FilePlus size={12} />
                     </button>
-                    <button
-                      onClick={handleCopyCode}
-                      className="text-slate-500 hover:text-cyan-400 transition-colors p-0.5"
-                      title="Copy code"
-                    >
+                    <button onClick={actions.handleCopyCode} className="text-slate-500 hover:text-cyan-400 transition-colors p-0.5" title="Copy code">
                       <Copy size={12} />
                     </button>
-                    <button
-                      onClick={handleDownloadCode}
-                      className="text-slate-500 hover:text-cyan-400 transition-colors p-0.5"
-                      title="Download code"
-                    >
+                    <button onClick={actions.handleDownloadCode} className="text-slate-500 hover:text-cyan-400 transition-colors p-0.5" title="Download code">
                       <Download size={12} />
                     </button>
                   </div>
@@ -376,62 +185,46 @@ export default function Playground() {
         <div className="flex-1 flex flex-col overflow-hidden bg-black/20 h-full">
           {/* Top Half: QASM & Results */}
           <div className="flex h-[40%] border-b border-white/5 flex-shrink-0">
-             <div className="flex-1 border-r border-white/5 h-full">
-                <QasmPanel
-                  qasm={qasm}
-                  highlightedLine={highlightedLine}
-                  headerAction={
+            <div className="flex-1 border-r border-white/5 h-full">
+              <QasmPanel
+                qasm={qasm}
+                highlightedLine={highlightedLine}
+                headerAction={
+                  <div className="flex items-center gap-0.5">
+                    <button onClick={actions.handleCopyQasm} className="text-slate-500 hover:text-cyan-400 transition-colors p-0.5" title="Copy QASM">
+                      <Copy size={12} />
+                    </button>
+                    <button onClick={actions.handleDownloadQasm} className="text-slate-500 hover:text-cyan-400 transition-colors p-0.5" title="Download QASM">
+                      <Download size={12} />
+                    </button>
+                  </div>
+                }
+              />
+            </div>
+            <div className="w-64 h-full">
+              <ResultsPanel
+                results={prog.displayResults}
+                isSimulating={isSimulating || prog.isProgressing}
+                momentLabel={prog.momentLabel}
+                headerAction={
+                  prog.displayResults ? (
                     <div className="flex items-center gap-0.5">
-                      <button
-                        onClick={handleCopyQasm}
-                        className="text-slate-500 hover:text-cyan-400 transition-colors p-0.5"
-                        title="Copy QASM"
-                      >
+                      <button onClick={actions.handleCopyResults} className="text-slate-500 hover:text-cyan-400 transition-colors p-0.5" title="Copy results CSV">
                         <Copy size={12} />
                       </button>
-                      <button
-                        onClick={handleDownloadQasm}
-                        className="text-slate-500 hover:text-cyan-400 transition-colors p-0.5"
-                        title="Download QASM"
-                      >
+                      <button onClick={actions.handleDownloadResults} className="text-slate-500 hover:text-cyan-400 transition-colors p-0.5" title="Download results CSV">
                         <Download size={12} />
                       </button>
                     </div>
-                  }
-                />
-             </div>
-             <div className="w-64 h-full">
-                <ResultsPanel
-                  results={displayResults}
-                  isSimulating={isSimulating || isProgressing}
-                  momentLabel={momentLabel}
-                  headerAction={
-                    displayResults ? (
-                      <div className="flex items-center gap-0.5">
-                        <button
-                          onClick={handleCopyResults}
-                          className="text-slate-500 hover:text-cyan-400 transition-colors p-0.5"
-                          title="Copy results CSV"
-                        >
-                          <Copy size={12} />
-                        </button>
-                        <button
-                          onClick={handleDownloadResults}
-                          className="text-slate-500 hover:text-cyan-400 transition-colors p-0.5"
-                          title="Download results CSV"
-                        >
-                          <Download size={12} />
-                        </button>
-                      </div>
-                    ) : undefined
-                  }
-                />
-             </div>
+                  ) : undefined
+                }
+              />
+            </div>
           </div>
 
           {/* Bottom Half: Visualizer */}
           <div className="flex-1 overflow-hidden h-full">
-             <VisualizerPanel qasm={qasm} onHover={handleHover} />
+            <VisualizerPanel qasm={qasm} onHover={handleHover} />
           </div>
         </div>
       </main>
