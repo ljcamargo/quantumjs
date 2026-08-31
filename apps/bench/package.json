@@ -11,6 +11,7 @@
   "dependencies": {
     "@ljcamargo/quirkvis-core": "0.2.2",
     "@ljcamargo/quirkvis-react": "0.2.2",
+    "@quantum-js/dsl": "file:../../packages/quantumjs",
     "@types/prismjs": "^1.26.6",
     "clsx": "^2.1.1",
     "framer-motion": "^12.38.0",
@@ -18,11 +19,12 @@
     "next": "16.2.3",
     "prismjs": "^1.30.0",
     "quantum-circuit": "^0.9.247",
-    "@quantum-js/dsl": "file:../../packages/quantumjs",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-simple-code-editor": "^0.14.1",
-    "tailwind-merge": "^3.5.0"
+    "tailwind-merge": "^3.5.0",
+    "webmcp-react": "^0.2.0",
+    "zod": "^4.5.4"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

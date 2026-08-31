@@ -11,61 +11,89 @@ import * as Quantum from '@quantum-js/dsl';
  */
 type QasmError = { line: number; msg: string };
 
+export type SimRunResult = {
+  code: string;
+  qasm3: string;
+  qasm2: string;
+  probabilities: Record<string, number> | null;
+  error: string | null;
+};
+
 export function useSimulator(initialCode: string) {
   const [code, setCode] = useState(initialCode);
-  const [qasm, setQasm] = useState('');
-  const [qasmSim, setQasmSim] = useState('');
-  const [results, setResults] = useState<Record<string, number> | null>(null);
+  const [qasm3, setQasm3] = useState('');
+  const [qasm2, setQasm2] = useState('');
+  const [probabilities, setProbabilities] = useState<Record<string, number> | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isSimulating, setIsSimulating] = useState(false);
+  const [isRunning, setIsRunning] = useState(false);
   const [autoRun, setAutoRun] = useState(true);
 
-  const run = useCallback(() => {
-    setError(null);
-    try {
-      const execute = new Function('Quantum', code);
-      const circuitObj = execute(Quantum);
+  // Core pipeline: runs for a given source string and resolves with the
+  // *complete* result. Doesn't read back from React state anywhere.
+  const execute = useCallback((sourceCode: string): Promise<SimRunResult> => {
+    return new Promise((resolve) => {
+      setError(null);
+      setIsRunning(true);
 
-      if (!circuitObj || typeof circuitObj.compile !== 'function') {
-        throw new Error("Code must return a Quantum.Circuit object (e.g., 'return c;')");
-      }
+      let compiledQasm3 = '';
+      let compiledQasm2 = '';
 
-      const outputQasm3 = circuitObj.compile({ version: '3.0' });
-      setQasm(outputQasm3);
+      const finish = (result: SimRunResult) => {
+        setIsRunning(false);
+        resolve(result);
+      };
 
-      const outputQasm2 = circuitObj.compile({ version: '2.0' });
-      setQasmSim(outputQasm2);
-
-      setIsSimulating(true);
-      const qc = new QuantumCircuit();
-      qc.importQASM(outputQasm2, (err: QasmError[] | string) => {
-        if (Array.isArray(err) && err.length > 0) {
-          const messages = err.map((e) => `Line ${e.line}: ${e.msg}`).join('\n');
-          setError(`Simulation Error:\n${messages}`);
-          setIsSimulating(false);
-          return;
-        } else if (typeof err === 'string') {
-          setError(`Simulation Error: ${err}`);
-          setIsSimulating(false);
-          return;
+      try {
+        const fn = new Function('Quantum', sourceCode);
+        const circuitObj = fn(Quantum);
+        if (!circuitObj || typeof circuitObj.compile !== 'function') {
+          throw new Error("Code must return a Quantum.Circuit object (e.g., 'return c;')");
         }
 
-        qc.run();
-        const probabilities = qc.probabilities();
-        setResults(probabilities);
-        setIsSimulating(false);
-      });
-    } catch (e: unknown) {
-      if (e instanceof Error) {
-        setError(e.message);
-      } else {
-        setError(String(e));
-      }
-      setIsSimulating(false);
-    }
-  }, [code]);
+        compiledQasm3 = circuitObj.compile({ version: '3.0' });
+        compiledQasm2 = circuitObj.compile({ version: '2.0' });
+        setQasm3(compiledQasm3);
+        setQasm2(compiledQasm2);
 
-  // Autorun: debounce re-simulation 1s after code changes
+        const qc = new QuantumCircuit();
+        qc.importQASM(compiledQasm2, (err: QasmError[] | string) => {
+          if ((Array.isArray(err) && err.length > 0) || typeof err === 'string') {
+            const detail = Array.isArray(err)
+              ? err.map((e) => `Line ${e.line}: ${e.msg}`).join('\n')
+              : err;
+            const msg = `Simulation Error:\n${detail}`;
+            setError(msg);
+            finish({ code: sourceCode, qasm3: compiledQasm3, qasm2: compiledQasm2, probabilities: null, error: msg });
+            return;
+          }
+          qc.run();
+          const probs = qc.probabilities();
+          setProbabilities(probs);
+          finish({ code: sourceCode, qasm3: compiledQasm3, qasm2: compiledQasm2, probabilities: probs, error: null });
+        });
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e);
+        setError(msg);
+        finish({ code: sourceCode, qasm3: compiledQasm3, qasm2: compiledQasm2, probabilities: null, error: msg });
+      }
+    });
+  }, []);
+
+  // UI-driven run: uses whatever `code` currently is
+  const run = useCallback(() => {
+    void execute(code);
+  }, [execute, code]);
+
+  // MCP-driven / programmatic run: takes code explicitly, updates the
+  // editor state too, and returns the full result object.
+  const runWithCode = useCallback(
+    (newCode: string) => {
+      setCode(newCode);
+      return execute(newCode);
+    },
+    [execute]
+  );
+
   useEffect(() => {
     if (!autoRun) return;
     const timer = setTimeout(run, 1000);
@@ -75,13 +103,14 @@ export function useSimulator(initialCode: string) {
   return {
     code,
     setCode,
-    qasm,
-    qasmSim,
-    results,
+    qasm3,
+    qasm2,
+    probabilities,
     error,
-    isSimulating,
+    isRunning,
     autoRun,
     setAutoRun,
     run,
+    runWithCode,
   };
 }

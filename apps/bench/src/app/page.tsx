@@ -1,49 +1,53 @@
 "use client";
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState, useRef } from 'react';
 import { Play, BookOpen, FolderOpen, Download, Copy, FilePlus } from 'lucide-react';
 
 import { EditorPanel, QasmPanel, ResultsPanel, SamplesPanel, ErrorDisplay } from '../components/Panels';
 import { VisualizerPanel } from '../components/VisualizerPanel';
+import type { VisualizerPanelHandle } from '../components/VisualizerPanel';
 import { GitHubIcon } from '../components/icons';
 import type { HoverInfo } from '@ljcamargo/quirkvis-react';
 import { buildQasmLineMap } from '../lib/qasmLineMap';
 import { buildSampleTree } from '../lib/sampleTree';
-import { useSimulator } from '../hooks/useSimulator';
-import { useProgressive } from '../hooks/useProgressive';
+import { useQuantumPipeline } from '../hooks/useQuantumPipeline';
 import { useFileActions } from '../hooks/useFileActions';
 import sampleEntries, { getSampleCode } from '../sampleRegistry';
+import { useMcpTool, useWebMCPStatus } from 'webmcp-react';
 
 const sampleTree = buildSampleTree(sampleEntries);
 const DEFAULT_CODE = getSampleCode('samples/qft_sugar.js')!;
 
 export default function Playground() {
-  // Simulation pipeline (code → QASM → probabilities)
-  const sim = useSimulator(DEFAULT_CODE);
-  const { qasm, qasmSim, results, error, isSimulating, autoRun, setAutoRun, setCode } = sim;
 
-  // Progressive moment-by-moment results + hovered moment
-  const prog = useProgressive(qasm, qasmSim, isSimulating, results);
-  const { setHoveredMoment } = prog;
+  // Compile + simulate + moment-cache pipeline, in one composed hook.
+  const pipeline = useQuantumPipeline(DEFAULT_CODE);
+  const {
+    code, qasm3, probabilities, error, isRunning, autoRun, setAutoRun, setCode, run,
+    focusedMoment, setFocusedMoment, isCachingMoments, displayResults, momentLabel,
+    runWithMoment,
+  } = pipeline;
 
   // Download / copy / new-file actions
-  const actions = useFileActions(sim.code, qasm, results, setCode);
+  const actions = useFileActions(code, qasm3, probabilities, setCode);
 
   // UI state
   const [highlightedLine, setHighlightedLine] = useState<number | null>(null);
   const [activeSamplePath, setActiveSamplePath] = useState('samples/qft_sugar.js');
   const [showSamples, setShowSamples] = useState(false);
 
+  const visualizerRef = useRef<VisualizerPanelHandle>(null);
+
   // Hover → QASM line + moment
-  const lineMap = useMemo(() => buildQasmLineMap(qasm), [qasm]);
+  const lineMap = useMemo(() => buildQasmLineMap(qasm3), [qasm3]);
   const handleHover = useCallback(
     (info: HoverInfo) => {
       if (info.type === 'none') {
         setHighlightedLine(null);
-        setHoveredMoment(null);
+        setFocusedMoment(null);
         return;
       }
-      if (info.momentIndex >= 0) setHoveredMoment(info.momentIndex);
+      if (info.momentIndex >= 0) setFocusedMoment(info.momentIndex);
       if (info.type !== 'gate' && info.type !== 'measure' && info.type !== 'barrier') {
         setHighlightedLine(null);
         return;
@@ -55,14 +59,14 @@ export default function Playground() {
       if (line == null) line = lineMap.get(`${info.momentIndex}:${name}:`);
       setHighlightedLine(line ?? null);
     },
-    [lineMap, setHoveredMoment]
+    [lineMap, setFocusedMoment]
   );
 
   const handleSelectSample = useCallback(
     (path: string) => {
-      const code = getSampleCode(path);
-      if (code) {
-        setCode(code);
+      const sampleCode = getSampleCode(path);
+      if (sampleCode) {
+        setCode(sampleCode);
         setActiveSamplePath(path);
         setShowSamples(false);
       }
@@ -77,6 +81,128 @@ export default function Playground() {
     },
     [setCode]
   );
+
+  // WebMCP
+  const { available: webmcpAvailable } = useWebMCPStatus();
+  const { execute: executeCompileTool } = useMcpTool({
+    name: 'compile_simulate_draw',
+    description: 'Compiles quantum code, triggers real-time simulation, and extracts the resulting math and layout structures. Use this tool anytime code is modified or debugged.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: {
+          type: 'string',
+          description: 'The raw quantum source code to run in the editor.',
+        },
+        momentum: {
+          type: 'integer',
+          description: 'Optional gate execution index to truncate simulation to a specific momentum (for step-by-step debugging/hover simulation). Omit or set to -1 for full circuit execution.',
+        },
+        includeSvg: {
+          type: 'boolean',
+          description: 'If true, also return the rendered circuit diagram as an SVG string. Omit or set to false to skip (faster, smaller response).',
+        },
+      },
+      required: ['code'],
+      additionalProperties: false,
+    },
+    handler: async (args) => {
+      const { code: newCode, momentum, includeSvg } = args as {
+        code: string;
+        momentum?: number;
+        includeSvg?: boolean;
+      };
+      const result = await runWithMoment(newCode, momentum);
+
+      let svg: string | null = null;
+      if (includeSvg && !result.error) {
+        svg = (await visualizerRef.current?.waitForRender(result.qasm3)) ?? null;
+      }
+      return {
+        content: [],
+        structuredContent: {
+          qasm: result.qasm2,
+          probabilities: result.probabilities,
+          moment: result.moment,
+          error: result.error,
+          ...(includeSvg ? { svg } : {}),
+        },
+      };
+    },
+  });
+  useMcpTool({
+    name: 'list_samples',
+    description: 'List Sample Available',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+      required: [],
+      additionalProperties: false,
+    },
+    handler: async () => {
+      return {
+        content: [],
+        structuredContent: {
+          sampleEntries: sampleEntries
+        },
+      };
+    },
+  });
+  useMcpTool({
+    name: 'open_sample',
+    description: 'Open a sample by path, loading its code into the editor. Optionally compiles and simulates it immediately.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        path: {
+          type: 'string',
+          description: 'The sample path, e.g. "samples/qft_simple.js" (matches a `path` from list_samples).',
+        },
+        execute: {
+          type: 'boolean',
+          description: 'If true, also compile and simulate the sample immediately after opening it (equivalent to calling compile_simulate_draw with this sample\'s code).',
+        },
+      },
+      required: ['path'],
+      additionalProperties: false,
+    },
+    handler: async (args) => {
+      const { path, execute: shouldExecute } = args as { path: string; execute?: boolean };
+
+      const sampleCode = getSampleCode(path);
+      if (!sampleCode) {
+        return {
+          content: [],
+          structuredContent: {
+            path,
+            error: `No sample found at path "${path}"`,
+          },
+        };
+      }
+
+      setCode(sampleCode);
+      setActiveSamplePath(path);
+      setShowSamples(false);
+
+      if (!shouldExecute) {
+        return {
+          content: [],
+          structuredContent: { path, code: sampleCode },
+        };
+      }
+
+      const compileResult = await executeCompileTool({ code: sampleCode });
+
+      return {
+        content: [],
+        structuredContent: {
+          path,
+          code: sampleCode,
+          ...compileResult.structuredContent,
+        },
+      };
+    },
+  });
 
   return (
     <div className="flex flex-col h-screen bg-[#0a0a0c] text-slate-200 font-sans overflow-hidden">
@@ -102,6 +228,16 @@ export default function Playground() {
           </button>
         </div>
         <div className="flex items-center gap-2">
+          {/* WebMCP Logo */}
+          {webmcpAvailable &&
+            <div className="h-5 mx-4 flex gap-0.5">
+              <span className="text-xs tracking-tight text-white flex items-center gap-1.5">
+                WebMCP
+              </span>
+              <img src="/webmcp.svg" alt="QuantumJS" className="w-4 h-4 object-contain" />
+
+            </div>
+          }
           {/* Autorun Toggle */}
           <label className="flex items-center gap-2 cursor-pointer select-none">
             <input
@@ -117,7 +253,7 @@ export default function Playground() {
           </label>
 
           <button
-            onClick={sim.run}
+            onClick={run}
             className="h-7 px-3 bg-cyan-600 hover:bg-cyan-500 text-white text-[10px] font-bold rounded transition-all flex items-center gap-1.5 active:scale-95"
           >
             <Play className="w-3 h-3 fill-current" />
@@ -160,7 +296,7 @@ export default function Playground() {
               />
             ) : (
               <EditorPanel
-                code={sim.code}
+                code={code}
                 setCode={setCode}
                 headerAction={
                   <div className="flex items-center gap-0.5">
@@ -187,7 +323,7 @@ export default function Playground() {
           <div className="flex h-[40%] border-b border-white/5 flex-shrink-0">
             <div className="flex-1 border-r border-white/5 h-full">
               <QasmPanel
-                qasm={qasm}
+                qasm={qasm3}
                 highlightedLine={highlightedLine}
                 headerAction={
                   <div className="flex items-center gap-0.5">
@@ -203,16 +339,16 @@ export default function Playground() {
             </div>
             <div className="w-64 h-full">
               <ResultsPanel
-                results={prog.displayResults}
-                isSimulating={isSimulating || prog.isProgressing}
-                momentLabel={prog.momentLabel}
+                results={displayResults}
+                isSimulating={isRunning || isCachingMoments}
+                momentLabel={momentLabel}
                 headerAction={
-                  prog.displayResults ? (
+                  displayResults ? (
                     <div className="flex items-center gap-0.5">
-                      <button onClick={actions.handleCopyResults} className="text-slate-500 hover:text-cyan-400 transition-colors p-0.5" title="Copy results CSV">
+                      <button onClick={actions.handleCopyResults} className="text-slate-500 hover:text-cyan-400 transition-colors p-0.5" title="Copy probabilities CSV">
                         <Copy size={12} />
                       </button>
-                      <button onClick={actions.handleDownloadResults} className="text-slate-500 hover:text-cyan-400 transition-colors p-0.5" title="Download results CSV">
+                      <button onClick={actions.handleDownloadResults} className="text-slate-500 hover:text-cyan-400 transition-colors p-0.5" title="Download probabilities CSV">
                         <Download size={12} />
                       </button>
                     </div>
@@ -224,7 +360,7 @@ export default function Playground() {
 
           {/* Bottom Half: Visualizer */}
           <div className="flex-1 overflow-hidden h-full">
-            <VisualizerPanel qasm={qasm} onHover={handleHover} />
+            <VisualizerPanel ref={visualizerRef} qasm={qasm3} onHover={handleHover} />
           </div>
         </div>
       </main>
