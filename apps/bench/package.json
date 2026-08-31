@@ -23,8 +23,7 @@
     "react-dom": "19.2.4",
     "react-simple-code-editor": "^0.14.1",
     "tailwind-merge": "^3.5.0",
-    "webmcp-react": "^0.2.0",
-    "zod": "^4.5.4"
+    "webmcp-react": "^0.2.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
