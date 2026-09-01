@@ -77,6 +77,10 @@ const config: Config = {
           position: 'left',
         },
         {
+          type: 'custom-webMcpBadge',
+          position: 'right',
+        },
+        {
           href: 'https://github.com/ljcamargo/quantumjs',
           label: 'GitHub',
           position: 'right',
