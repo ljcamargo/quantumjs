@@ -24,6 +24,18 @@ const config: Config = {
     locales: ['en'],
   },
 
+  plugins: [
+    [
+      'docusaurus-plugin-llms',
+      {
+        generateMarkdownFiles: true,
+        includeOrder: [
+          'intro.mdx'
+        ]
+      },
+    ]
+  ],
+
   presets: [
     [
       'classic',
