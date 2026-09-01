@@ -1,0 +1,12 @@
+# apps/documentation/static/_headers
+/sitemap.json
+  Access-Control-Allow-Origin: *
+
+/llms.txt
+  Access-Control-Allow-Origin: *
+
+/llms-full.txt
+  Access-Control-Allow-Origin: *
+
+/*.md
+  Access-Control-Allow-Origin: *
