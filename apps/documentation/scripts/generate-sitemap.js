@@ -68,10 +68,11 @@ function nestSections(flatHeadings, pageUrl) {
   const stack = [];
 
   for (const h of flatHeadings) {
+    const humanUrl = `${pageUrl}#${h.anchor}`.replace("/docs","/");
     const node = {
       heading: `${'#'.repeat(h.level)} ${h.title}`,
       handle: h.anchor,
-      humanUrl: `${pageUrl}#${h.anchor}`,
+      humanUrl: humanUrl,
       contents: [],
     };
 
@@ -101,9 +102,11 @@ function main() {
       : '/' + (routeKey === 'index' ? '' : routeKey);
 
     const headings = extractHeadings(mdFile);
+    const humanUrl = fullUrl.replace("/docs","/");
 
     sitemapJson.push({
-      url: fullUrl + '.md',
+      agentUrl: fullUrl + '.md',
+      humanUrl: humanUrl,
       path: displayPath,
       title: headings.find(h => h.level === 1)?.title ?? null,
       contents: nestSections(headings.filter(h => h.level > 1), fullUrl),
