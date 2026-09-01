@@ -5,6 +5,7 @@
   "scripts": {
     "docusaurus": "docusaurus",
     "start": "docusaurus start",
+    "prebuild": "cp ../../agent-skills/quantumjs/SKILL.md static/",
     "build": "docusaurus build && node scripts/generate-sitemap.js",
     "swizzle": "docusaurus swizzle",
     "deploy": "docusaurus deploy",

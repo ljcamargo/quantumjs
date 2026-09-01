@@ -14,6 +14,7 @@ import { useQuantumPipeline } from '../hooks/useQuantumPipeline';
 import { useFileActions } from '../hooks/useFileActions';
 import sampleEntries, { getSampleCode } from '../sampleRegistry';
 import { useMcpTool, useWebMCPStatus } from 'webmcp-react';
+import { useDocsTools } from '../hooks/useDocsTools';
 
 const sampleTree = buildSampleTree(sampleEntries);
 const DEFAULT_CODE = getSampleCode('samples/qft_sugar.js')!;
@@ -203,6 +204,7 @@ export default function Playground() {
       };
     },
   });
+  useDocsTools();
 
   return (
     <div className="flex flex-col h-screen bg-[#0a0a0c] text-slate-200 font-sans overflow-hidden">

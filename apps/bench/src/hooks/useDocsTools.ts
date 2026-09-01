@@ -1,6 +1,6 @@
 // src/mcp/useDocsMcpTools.ts
 import { useMcpTool } from 'webmcp-react';
-import { useHistory } from '@docusaurus/router';
+import { useRouter } from 'next/navigation';
 
 type SitemapSection = {
   heading: string;
@@ -17,19 +17,14 @@ type SitemapEntry = {
   contents: SitemapSection[];
 };
 
-// TODO: confirm these paths actually match where your plugin emits the files.
-const SITEMAP_URL = '/sitemap.json';
-const LLMS_TXT_URL = '/llms.txt';
-const LLMS_FULL_TXT_URL = '/llms-full.txt';
-const SKILL_MD_URL = '/SKILL.md';
+const DOCS_BASE_URL = 'https://quantumjsdocs.netlify.app';
+const SITEMAP_URL = DOCS_BASE_URL + '/sitemap.json';
+const LLMS_TXT_URL = DOCS_BASE_URL + '/llms.txt';
+const LLMS_FULL_TXT_URL = DOCS_BASE_URL + '/llms-full.txt';
+const SKILL_MD_URL = DOCS_BASE_URL + '/SKILL.md';
 
-function toCurrentOrigin(url: string): string {
-  try {
-    const parsed = new URL(url);
-    return `${window.location.origin}${parsed.pathname}${parsed.search}${parsed.hash}`;
-  } catch {
-    return url; // already relative, or malformed — leave as-is
-  }
+export function docsUrl(path: string): string {
+  return `${DOCS_BASE_URL}${path}`;
 }
 
 // --- fetch caching -----------------------------------------------------
@@ -50,7 +45,7 @@ function loadSitemap(): Promise<SitemapEntry[]> {
 
 const markdownCache = new Map<string, Promise<string>>();
 function loadMarkdown(agentUrl: string): Promise<string> {
-  const url = toCurrentOrigin(agentUrl);
+  const url = agentUrl;
   if (!markdownCache.has(url)) {
     markdownCache.set(
       url,
@@ -118,7 +113,7 @@ function flattenSections(contents: SitemapSection[]): Array<{ heading: string; h
 // --- hook ----------------------------------------------------------------
 
 export function useDocsTools() {
-  const history = useHistory();
+  const router = useRouter();
 
   useMcpTool({
     name: 'list_docs',
@@ -196,20 +191,20 @@ export function useDocsTools() {
   useMcpTool({
     name: 'navigate_to_doc',
     description:
-      "Navigates the user's own browser tab to a documentation page, optionally scrolled to a specific section. Use this when the user should see the page themselves — not as a way to read content yourself, use get_doc_content for that.",
+      "Navigates the user's own browser tab to a documentation page, optionally scrolled to a specific section and page, if not to the docs home. Use this when the user should see the page themselves — not as a way to read content yourself, use get_doc_content for that.",
     inputSchema: {
       type: 'object',
       properties: {
-        path: { type: 'string', description: 'Page path from list_docs, e.g. "/bench".' },
+        path: { type: 'string', description: 'Optinal page path from list_docs, e.g. "/bench". if not provided redirects to docs home' },
         handle: { type: 'string', description: 'Optional section handle to scroll to, e.g. "the-editor".' },
       },
       required: ['path'],
       additionalProperties: false,
     },
     handler: async (args) => {
-      const { path, handle } = args as { path: string; handle?: string };
-      const target = handle ? `${path}#${handle}` : path;
-      history.push(target);
+      const { path, handle } = args as { path?: string; handle?: string };
+      const target = path ? (handle ? `${path}#${handle}` : path) : DOCS_BASE_URL;
+      router.push(target);
       return { content: [], structuredContent: { navigatedTo: target } };
     },
   });

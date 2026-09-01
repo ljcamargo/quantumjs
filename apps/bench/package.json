@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --webpack",
+    "prebuild": "cp ../../agent-skills/quantumjs/SKILL.md public/",
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint"
