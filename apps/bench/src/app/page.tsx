@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useMemo, useState, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { Play, BookOpen, FolderOpen, Download, Copy, FilePlus } from 'lucide-react';
 
 import { EditorPanel, QasmPanel, ResultsPanel, SamplesPanel, ErrorDisplay } from '../components/Panels';
@@ -15,6 +15,7 @@ import { useFileActions } from '../hooks/useFileActions';
 import sampleEntries, { getSampleCode } from '../sampleRegistry';
 import { useMcpTool, useWebMCPStatus } from 'webmcp-react';
 import { useDocsTools } from '../hooks/useDocsTools';
+import { WebMCPDialog } from '../components/WebMCPDialog';
 
 const sampleTree = buildSampleTree(sampleEntries);
 const DEFAULT_CODE = getSampleCode('samples/qft_sugar.js')!;
@@ -36,6 +37,8 @@ export default function Playground() {
   const [highlightedLine, setHighlightedLine] = useState<number | null>(null);
   const [activeSamplePath, setActiveSamplePath] = useState('samples/qft_sugar.js');
   const [showSamples, setShowSamples] = useState(false);
+  const [showWebMCPDialog, setShowWebMCPDialog] = useState(false);
+  const [webMCPVisible, setWebMCPVisible] = useState(false);
 
   const visualizerRef = useRef<VisualizerPanelHandle>(null);
 
@@ -84,7 +87,7 @@ export default function Playground() {
   );
 
   // WebMCP
-  const { available: webmcpAvailable } = useWebMCPStatus();
+  const { available: webMcpAvailable } = useWebMCPStatus();
   const { execute: executeCompileTool } = useMcpTool({
     name: 'compile_simulate_draw',
     description: 'Compiles quantum code, triggers real-time simulation, and extracts the resulting math and layout structures. Use this tool anytime code is modified or debugged.',
@@ -206,6 +209,16 @@ export default function Playground() {
   });
   useDocsTools();
 
+  useEffect(() => {
+    if (webMcpAvailable) {
+      const timer = setTimeout(() => {
+        setWebMCPVisible(true);
+      }, 500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [webMcpAvailable]);
+
   return (
     <div className="flex flex-col h-screen bg-[#0a0a0c] text-slate-200 font-sans overflow-hidden">
       {/* Header */}
@@ -231,14 +244,21 @@ export default function Playground() {
         </div>
         <div className="flex items-center gap-2">
           {/* WebMCP Logo */}
-          {webmcpAvailable &&
-            <div className="h-5 mx-4 flex gap-0.5">
+          {webMcpAvailable &&
+            <button
+              onClick={() => setShowWebMCPDialog(true)}
+              className={`
+                h-5 mx-4 flex gap-0.5 hover:opacity-80 transition-opacity cursor-pointer relative items-center
+                ${webMCPVisible ? 'opacity-100 ease-[cubic-bezier(0.15,0.85,0.45,1)]' : 'opacity-0 ease-[cubic-bezier(0.55,0,1,0.45)]'}
+                transition-opacity duration-2500
+              `}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-green-400 mr-1.5" />
               <span className="text-xs tracking-tight text-white flex items-center gap-1.5">
                 WebMCP
               </span>
               <img src="/webmcp.svg" alt="QuantumJS" className="w-4 h-4 object-contain" />
-
-            </div>
+            </button>
           }
           {/* Autorun Toggle */}
           <label className="flex items-center gap-2 cursor-pointer select-none">
@@ -366,6 +386,11 @@ export default function Playground() {
           </div>
         </div>
       </main>
+      {/* WebMCP Dialog */}
+      <WebMCPDialog
+        isOpen={showWebMCPDialog}
+        onClose={() => setShowWebMCPDialog(false)}
+      />
     </div>
   );
 }
