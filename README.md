@@ -1,18 +1,65 @@
-# <img src="assets/logo_small.png" align="center" width="40" height="40" /> QuantumJS
-[![npm version](https://badge.fury.io/js/%40quantum-js%2Fdsl.svg)](https://badge.fury.io/js/%40quantum-js%2Fdsl)
+# QuantumJS
 
-A modern, highly expressive Quantum Circuit Domain Specific Language (DSL) and AST-driven compiler for JavaScript and TypeScript.
+![QuantumJS logo](assets/logo_small.png)
 
-**QuantumJS** generates compliant, high-performance **OpenQASM 3.0** (with OpenQASM 2.0 compatibility) capable of being executed on quantum processors or local statevector simulators. It features fluent chaining patterns, context-aware loop scopes, and structural pipelines to simplify the creation of complex quantum algorithms.
+[![npm version](https://badge.fury.io/js/%40quantum-js%2Fdsl.svg)](https://www.npmjs.com/package/@quantum-js/dsl)
+[![license](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-### 🌐 Live Demo & Bench
-An interactive, real-time IDE to write, visualize, and simulate circuits with QuantumJS is available for testing at: **[quantumjs.netlify.app](https://quantumjs.netlify.app)**
+QuantumJS is an open-source **quantum computing environment built around JavaScript and TypeScript** that brings quantum development directly to the browser while allowing deep integration as an imported library or command-line tool. 
+
+It provides an intuitive language for authoring quantum circuits, a compiler that generates OpenQASM to ensure compatibility with industry-standard quantum hardware and simulators, and an online Bench where circuits can be written, simulated, rendered, and examined. Built to work natively within JavaScript and TypeScript, the circuit language seamlessly expresses everything from individual gate operations to reusable architectural patterns and complete quantum algorithms.
+
+> Author quantum circuits in JavaScript or TypeScript, compile them to OpenQASM, and use the browser to simulate, visualize, and inspect their execution and results.
+
+### Core Use Cases
+* **Education & Learning:** Teaching and learning quantum computing fundamentals through an accessible stack.
+* **Algorithm Exploration:** Prototyping, testing, and experimenting with new quantum algorithms.
+* **Academic Research:** Accelerating research and experimentation without heavy environment setup.
+* **Software Engineering:** Building modern quantum software and developer tools using web technologies.
 
 ---
 
-## Installation
+**[Try the Bench](https://quantumjs.netlify.app)** · **[Read the documentation](https://quantumjsdocs.netlify.app)** · **[Install from npm](https://www.npmjs.com/package/@quantum-js/dsl)**
 
-Add QuantumJS to your JavaScript/TypeScript project:
+---
+
+## The QuantumJS project
+
+### Circuit authoring
+
+The QuantumJS circuit language offers several ways to describe a circuit:
+
+- write gates explicitly, one operation at a time;
+- chain operations through a fluent API;
+- use regular JavaScript loops, conditions, and functions;
+- express repeated circuit shapes with scoped staircase layouts;
+- organize input preparation, an algorithm, and measurement as a pipeline.
+
+These styles can be mixed freely in the same program.
+
+### OpenQASM compiler
+
+QuantumJS generates **OpenQASM 3.0** and can also emit **OpenQASM 2.0** for compatibility with tools and simulators that use the earlier version.
+
+### QuantumJS Bench
+
+The [Bench](https://quantumjs.netlify.app) brings QuantumJS into an interactive browser application:
+
+- a live JavaScript circuit editor with autorun;
+- generated OpenQASM alongside the source;
+- browser-based statevector simulation and probability results;
+- an interactive SVG circuit drawer;
+- gate-to-QASM highlighting and moment-by-moment probability inspection;
+- built-in examples plus source, QASM, CSV, and SVG export;
+- WebMCP tools that let compatible AI agents compile, simulate, draw, and explore the documentation in the browser.
+
+The Bench can be used online without installing QuantumJS locally.
+
+---
+
+## Quick start
+
+Install the authoring library:
 
 ```bash
 npm install @quantum-js/dsl
@@ -20,148 +67,163 @@ npm install @quantum-js/dsl
 bun add @quantum-js/dsl
 ```
 
----
-
-## Quick Start
-
-### 1. Basic Circuit
-Create a simple Bell State circuit and compile it to OpenQASM:
+Create a Bell-state circuit and compile it:
 
 ```javascript
 import { circuit } from '@quantum-js/dsl';
 
-const c = circuit({ qubits: 2 }, Q => {
-  Q.bit(0).h();
-  Q.bit(0).cx(Q.bit(1));
+const bell = circuit({ qubits: 2, bits: 2 }, Q => {
+  Q.bit(0).h().cx(Q.bit(1));
   Q.all().measure();
 });
 
-const qasm3 = c.compile(); // Default: OpenQASM 3.0
-const qasm2 = c.compile({ version: '2.0' }); // Compatibility Mode
+console.log(bell.compile());                  // OpenQASM 3.0
+console.log(bell.compile({ version: '2.0' })); // OpenQASM 2.0
+```
+
+OpenQASM 3.0 output:
+
+```qasm
+OPENQASM 3.0;
+include "stdgates.inc";
+qubit[2] q;
+bit[2] c;
+h q[0];
+cx q[0], q[1];
+c = measure q;
+```
+
+In the Bench, use the browser-provided `Quantum` global and return the circuit:
+
+```javascript
+const bell = Quantum.circuit({ qubits: 2, bits: 2 }, Q => {
+  Q.bit(0).h().cx(Q.bit(1));
+  Q.all().measure();
+});
+
+return bell;
 ```
 
 ---
 
-## Key Abstractions
+## One API, several authoring styles
 
-### A. Qubits & Registers
-Select qubits fluently by index, slices, or helpers:
+QuantumJS does not force every circuit into one syntax pattern.
+
+### Explicit gate sequence
+
+Useful when translating QASM, papers, or code from another framework:
+
 ```javascript
-Q.bit(0);       // Select qubit 0
-Q.first();      // Select the first qubit (index 0)
-Q.last();       // Select the last qubit (index span - 1)
-Q.all();        // Selects all qubits in the active scope
-Q.bits([0, 2]); // Selects multiple qubits
+const circuit = Quantum.circuit({ qubits: 3 }, Q => {
+  Q.bit(0).h();
+  Q.bit(0).cx(Q.bit(1));
+  Q.bit(1).cx(Q.bit(2));
+});
 ```
 
-### B. Flexible Inputs (`.input()`)
-The `input()` method prepares the initial quantum state using binary strings, Pauli strings, or gate arrays, automatically skipping ground states (`0` or `I`) to keep QASM output clean.
+### Fluent composition
+
+Useful for compact, readable local sequences:
+
 ```javascript
-Q.input("101");                // Big-endian binary input (X on q[0] and q[2])
-Q.input("101", { endian: 'little' }); // Little-endian binary input (X on q[0] and q[2] reversed)
-Q.input("XXIZI");              // Pauli string input (skips Identity 'I')
-Q.input(['X', 'H', 'S']);      // Explicit gate list array
+Q.bit(0).h().cx(Q.bit(1)).measure();
 ```
 
-### C. Quantum Gates
-Apply standard gates using chaining syntax:
+### JavaScript abstractions
+
+Use the language you already know:
+
 ```javascript
-// Single Qubit Gates
-Q.bit(0).h().x().y().z().s().s_().t().t_().id().reset();
+function catState(Q, size) {
+  Q.first().h();
+  for (let target = 1; target < size; target++) {
+    Q.first().cx(Q.bit(target));
+  }
+}
 
-// Rotation Gates
-Q.bit(0).u([0.3, 0.2, 0.1]);
-Q.bit(0).rx(Q.π.div(2));   // Rx(π/2)
-Q.bit(0).ry(Math.PI / 4);   // Ry(π/4)
-Q.bit(0).rz(Q.π.mult(0.5)); // Rz(π*0.5) — π.mult() and π.times() are available
-
-// Controlled Gates
-Q.bit(0).cx(Q.bit(1)); // CNOT
-Q.bit(0).cy(Q.bit(1));
-Q.bit(0).cz(Q.bit(1));
-Q.bit(0).cp(Q.bit(1), Q.π.div(2)); // Controlled Phase
-Q.bit(0).ch(Q.bit(1));             // Controlled Hadamard
-
-// Multi-Controlled Gates
-Q.bit(0).ccx(Q.bit(1), Q.bit(2)); // Toffoli / CCX
+const circuit = Quantum.circuit({ qubits: 4 }, Q => {
+  catState(Q, 4);
+});
 ```
 
-### D. Scoped Staircase Layouts
-These loops dynamically manage sizes, offsets, and contextual properties (`first()`, `last()`, and `iteration` absolute qubit index) to create "climbing" staircase circuits in space and time.
+### Circuit-shaped abstractions
 
-*   **`growUp` / `growDown`**: Increase sub-circuit sizes (growing) aligned to the top or bottom of the qubit registers.
-*   **`shrinkUp` / `shrinkDown`**: Decrease sub-circuit sizes (shrinking) aligned to the top or bottom.
+Scoped staircase layouts carry qubit span, offset, and iteration context. They make triangular patterns such as the Quantum Fourier Transform concise without hiding the generated operations:
 
 ```javascript
-// Beautiful QFT implementation using scoped layout loops
 Q.shrinkUp(q => {
-  q.shrinkDown(r => {
+  Q.shrinkDown(r => {
     if (r.iteration < q.iteration) {
-      r.last().cp(r.first(), Q.π.div(2 ** (1 + q.iteration - r.iteration)));
+      r.last().cp(
+        r.first(),
+        Q.π.div(2 ** (1 + q.iteration - r.iteration))
+      );
     }
   });
   q.last().h().brk();
 });
 ```
 
----
+### Structured pipelines
 
-## Pipeline Abstraction
-A **Pipeline** acts as a structured "Job" wrapping input preparation, core algorithm steps, output mapping, and post-processing into a single promise-like object:
+Separate state preparation, output mapping, and the core algorithm:
 
 ```javascript
 import { pipeline } from '@quantum-js/dsl';
 
 const job = pipeline(
   { qubits: 3 },
-  "101",                    // Input stage: binary state prep
-  Q => Q.all().measure(),   // Output stage: standard measurements
-  Q => {
-    // Core Algorithm Stage
-    Q.comment("Executing main steps");
-    Q.bit(0).cx(Q.bit(1));
+  '101',                    // input preparation
+  Q => Q.all().measure(),   // output mapping
+  Q => {                    // algorithm
+    Q.bit(0).h().cx(Q.bit(1));
   }
 );
 
 const qasm = job.compile();
 ```
 
----
-
-## Measuring & Basis Changes
-Easily measure qubits to classical registers. If no target is specified for a single qubit, it defaults to the first classical register index `c[0]`.
-
-```javascript
-Q.bit(0).measure();     // Measures q[0] to c[0]
-Q.bit(1).measureTo(0);  // Measures q[1] to c[0] explicitly
-Q.all().measure();      // Measures the whole register (one-to-one mapping)
-```
-
-Change measurement basis dynamically ( Bloch tomography helpers ):
-```javascript
-Q.bit(0).measureX(); // Tomography in X basis (H + measure)
-Q.bit(0).measureY(); // Tomography in Y basis (SDG + H + measure)
-Q.bit(0).measureW(); // Tomography in W basis (S + H + T + H + measure)
-```
+See the [complete guides and API reference](https://quantumjsdocs.netlify.app) for gates, inputs, measurements, conditionals, custom routines, layouts, and pipelines.
 
 ---
 
-## Custom Reusable Routines
-Extend the DSL with your own custom, chainable functions:
+## Repository structure
 
-```javascript
-const myCircuit = circuit({ qubits: 3 }, Q => {
-  // Define custom function
-  Q.addFunction('myBellState', (q, control, target) => {
-    q.bit(control).h().cx(q.bit(target));
-  });
+QuantumJS is maintained as a monorepo:
 
-  // Call it fluently from the function proxy
-  Q.fnc.myBellState(0, 1);
-});
+| Path | Purpose |
+|---|---|
+| [`packages/quantumjs`](packages/quantumjs) | Circuit API, AST, and OpenQASM emitter published as `@quantum-js/dsl` |
+| [`apps/bench`](apps/bench) | Live editor, simulator, circuit visualizer, samples, exports, and WebMCP tools |
+| [`apps/documentation`](apps/documentation) | Guides and API documentation |
+| [`examples`](examples) | Standalone circuit examples |
+
+### Local development
+
+```bash
+git clone https://github.com/ljcamargo/quantumjs.git
+cd quantumjs
+npm install
+
+# Build the library
+npm run build --workspace=@quantum-js/dsl
+
+# Run the Bench
+npm run dev --workspace=bench
+
+# Run the documentation site
+npm run start --workspace=docs
 ```
 
 ---
+
+## Project status
+
+QuantumJS is an evolving open-source project. OpenQASM output, simulator support, and browser APIs can differ across downstream tools, so verify generated circuits against the requirements of the target backend.
+
+Contributions, bug reports, circuit examples, and ideas are welcome through [GitHub Issues](https://github.com/ljcamargo/quantumjs/issues).
 
 ## License
-Apache 2.0
+
+[Apache License 2.0](LICENSE)
