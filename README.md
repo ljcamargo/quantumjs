@@ -222,7 +222,7 @@ npm run start --workspace=docs
 
 QuantumJS is an evolving open-source project. OpenQASM output, simulator support, and browser APIs can differ across downstream tools, so verify generated circuits against the requirements of the target backend.
 
-Contributions, bug reports, circuit examples, and ideas are welcome through [GitHub Issues](https://github.com/ljcamargo/quantumjs/issues).
+Contributions, bug reports, circuit examples, and ideas are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the development and pull request guidelines.
 
 ## License
 
