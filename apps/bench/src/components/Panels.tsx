@@ -5,34 +5,125 @@ import { highlight, languages } from 'prismjs/components/prism-core';
 import 'prismjs/components/prism-clike';
 import 'prismjs/components/prism-javascript';
 import 'prismjs/themes/prism-tomorrow.css';
-import { Terminal, Layers, Cpu, Code, Info, FileCode, FolderOpen, Folder, ChevronRight, ChevronDown } from 'lucide-react';
+import { Terminal, Layers, Code, Info, FileCode, FolderOpen, Folder, ChevronRight, ChevronDown, Maximize2 } from 'lucide-react';
+import { useIsDesktop } from '../hooks/useIsDesktop';
 
 interface PanelProps {
+  id: string;
   title: string;
   icon: React.ReactNode;
   children: React.ReactNode;
   className?: string;
   headerAction?: React.ReactNode;
+  badge?: React.ReactNode;
+  /** Mobile only: body hidden when true. Desktop always shows the body. */
+  collapsed?: boolean;
+  /** Mobile only: header tap toggles expansion. */
+  onToggle?: () => void;
+  /** Mobile only: expand this panel to the full stack height. */
+  onFocus?: () => void;
 }
 
-export const Panel: React.FC<PanelProps> = ({ title, icon, children, className = "", headerAction }) => (
-  <div className={`flex flex-col bg-[#111114] border border-white/5 shadow-2xl h-full ${className}`}>
-    <div className="px-3 py-1.5 border-b border-white/5 flex items-center justify-between bg-black/40 flex-shrink-0">
-      <div className="flex items-center gap-2 text-slate-400">
-        <span className="text-slate-500">{icon}</span>
-        <span className="text-[10px] font-bold uppercase tracking-widest">{title}</span>
-      </div>
-      {headerAction}
-    </div>
-    <div className="flex-1 overflow-auto min-h-0">
-      {children}
-    </div>
-  </div>
-);
+export type PanelChromeProps = Pick<
+  PanelProps,
+  'id' | 'className' | 'badge' | 'collapsed' | 'onToggle' | 'onFocus'
+>;
 
-export const EditorPanel = ({ code, setCode, headerAction }: { code: string, setCode: (c: string) => void; headerAction?: React.ReactNode }) => (
-  <Panel title="QuantumJS Editor" icon={<Code size={14} />} headerAction={headerAction}>
-    <div className="npm-editor h-full overflow-auto">
+export const Panel: React.FC<PanelProps> = ({
+  id,
+  title,
+  icon,
+  children,
+  className = '',
+  headerAction,
+  badge,
+  collapsed = false,
+  onToggle,
+  onFocus,
+}) => {
+  const contentId = `panel-content-${id}`;
+  // Mobile-only collapse semantics. On desktop the body is always visible, so
+  // the header must not advertise a toggle (or react to Enter).
+  const isDesktop = useIsDesktop();
+  const canToggle = !isDesktop && Boolean(onToggle);
+
+  return (
+    <div className={`bench-panel flex flex-col bg-[#111114] border border-white/5 shadow-2xl ${className}`}>
+      <div className="min-h-10 lg:min-h-0 px-2 lg:px-3 py-0 lg:py-1.5 border-b border-white/5 flex items-center justify-between gap-1.5 bg-black/40 flex-shrink-0">
+        <button
+          type="button"
+          onClick={canToggle ? onToggle : undefined}
+          tabIndex={canToggle ? undefined : -1}
+          aria-expanded={canToggle ? !collapsed : undefined}
+          aria-controls={canToggle ? contentId : undefined}
+          className="flex min-w-0 flex-1 items-center gap-2 py-2 lg:py-0 text-left text-slate-400 lg:pointer-events-none lg:cursor-default"
+        >
+          <span className="text-slate-500 flex-shrink-0">{icon}</span>
+          <span className="truncate text-[10px] font-bold uppercase tracking-widest">{title}</span>
+          {badge}
+          {onToggle && (
+            <ChevronDown
+              size={14}
+              className={`ml-auto flex-shrink-0 text-slate-600 transition-transform lg:hidden ${
+                collapsed ? '-rotate-90' : ''
+              }`}
+            />
+          )}
+        </button>
+        <div className="flex items-center gap-1 flex-shrink-0">
+          {onFocus && (
+            <button
+              type="button"
+              onClick={onFocus}
+              aria-label={`Focus ${title} panel`}
+              title="Focus panel"
+              className="panel-icon-btn lg:hidden"
+            >
+              <Maximize2 size={12} />
+            </button>
+          )}
+          {headerAction}
+        </div>
+      </div>
+      {/* Exactly one scroll region lives inside each panel body, never here. */}
+      <div
+        id={contentId}
+        className={`flex flex-1 flex-col min-h-0 overflow-hidden ${
+          collapsed ? 'hidden lg:flex' : ''
+        }`}
+      >
+        {children}
+      </div>
+    </div>
+  );
+};
+
+export const EditorPanel = ({
+  code,
+  setCode,
+  headerAction,
+  error,
+  ...chrome
+}: {
+  code: string;
+  setCode: (c: string) => void;
+  headerAction?: React.ReactNode;
+  error?: string | null;
+} & PanelChromeProps) => (
+  <Panel
+    title="QuantumJS Editor"
+    icon={<Code size={14} />}
+    headerAction={headerAction}
+    {...chrome}
+    badge={
+      error ? (
+        <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-red-400" />
+      ) : (
+        chrome.badge
+      )
+    }
+  >
+    <div className="npm-editor min-h-0 flex-1 overflow-auto">
       <style dangerouslySetInnerHTML={{ __html: `
         .npm-editor textarea { outline: none !important; }
         .npm-editor pre { pointer-events: none; }
@@ -60,10 +151,11 @@ export const EditorPanel = ({ code, setCode, headerAction }: { code: string, set
         }}
       />
     </div>
+    <ErrorDisplay error={error ?? null} />
   </Panel>
 );
 
-export const QasmPanel = ({ qasm, highlightedLine, headerAction }: { qasm: string; highlightedLine?: number | null; headerAction?: React.ReactNode }) => {
+export const QasmPanel = ({ qasm, highlightedLine, headerAction, ...chrome }: { qasm: string; highlightedLine?: number | null; headerAction?: React.ReactNode } & PanelChromeProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   const highlightedHtml = useMemo(
@@ -90,8 +182,8 @@ export const QasmPanel = ({ qasm, highlightedLine, headerAction }: { qasm: strin
   }, [highlightedLine]);
 
   return (
-    <Panel title="Generated QASM 3.0" icon={<Terminal size={14} />} headerAction={headerAction}>
-      <div ref={containerRef} className="p-4 h-full overflow-auto">
+    <Panel title="Generated QASM 3.0" icon={<Terminal size={14} />} headerAction={headerAction} {...chrome}>
+      <div ref={containerRef} className="min-h-0 flex-1 overflow-auto p-4">
         <pre className="text-[13px] font-mono text-cyan-500/80 whitespace-pre">
           {lines.length === 0 ? (
             <span className="text-slate-700">Waiting for QASM...</span>
@@ -119,11 +211,11 @@ export const QasmPanel = ({ qasm, highlightedLine, headerAction }: { qasm: strin
   );
 };
 
-export const ResultsPanel = ({ results, isSimulating, momentLabel, headerAction }: { results: any, isSimulating: boolean; momentLabel?: string; headerAction?: React.ReactNode }) => {
+export const ResultsPanel = ({ results, isSimulating, momentLabel, headerAction, ...chrome }: { results: any, isSimulating: boolean; momentLabel?: string; headerAction?: React.ReactNode } & PanelChromeProps) => {
   const panelTitle = momentLabel ? `Probabilities — ${momentLabel}` : 'Probabilities';
   return (
-    <Panel title={panelTitle} icon={<Layers size={14} />} headerAction={headerAction}>
-      <div className="p-4 h-full overflow-auto">
+    <Panel title={panelTitle} icon={<Layers size={14} />} headerAction={headerAction} {...chrome}>
+      <div className="min-h-0 flex-1 overflow-auto p-4">
         {isSimulating ? (
           <div className="h-full flex flex-col items-center justify-center text-slate-600 gap-2">
             <div className="w-8 h-8 border-2 border-slate-800 border-t-cyan-500 rounded-full animate-spin" />
@@ -243,13 +335,14 @@ export const SamplesPanel = ({
   onSelect,
   onClose,
   onFileOpen,
+  ...chrome
 }: {
   tree: { name: string; path: string; type: 'file' | 'directory'; children?: any[] };
   activePath: string | null;
   onSelect: (path: string) => void;
   onClose: () => void;
   onFileOpen?: (code: string, filename: string) => void;
-}) => {
+} & PanelChromeProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFilePick = useCallback(() => {
@@ -301,14 +394,15 @@ export const SamplesPanel = ({
       headerAction={
         <button
           onClick={onClose}
-          className="text-slate-500 hover:text-slate-300 transition-colors p-0.5"
+          className="panel-icon-btn"
           title="Close explorer"
         >
           <span className="text-[10px] font-bold">✕</span>
         </button>
       }
+      {...chrome}
     >
-      <div className="h-full overflow-auto text-[12px]">
+      <div className="min-h-0 flex-1 overflow-auto text-[12px]">
         {tree.children && tree.children.length > 0 ? (
           <ul className="list-none m-0 p-0">
             {tree.children.map((child) => (
@@ -358,7 +452,7 @@ export const SamplesPanel = ({
 export const ErrorDisplay = ({ error }: { error: string | null }) => {
   if (!error) return null;
   return (
-    <div className="bg-red-500/10 border-t border-red-500/20 p-2 flex gap-2 text-red-400 text-[10px] font-mono overflow-auto max-h-32">
+    <div className="bg-red-500/10 border-t border-red-500/20 p-2 flex gap-2 text-red-400 text-[10px] font-mono overflow-auto max-h-24 lg:max-h-32 flex-shrink-0">
       <Info size={12} className="flex-shrink-0 mt-0.5" />
       <pre className="whitespace-pre-wrap">{error}</pre>
     </div>

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Providers } from './providers';
@@ -17,6 +17,14 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "QuantumJS Bench",
   description: "Modern Quantum Circuit DSL for JavaScript",
+};
+
+// Keep the layout viewport in sync with the on-screen keyboard so the panel
+// stack and editor remain usable while typing on mobile.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  interactiveWidget: "resizes-content",
 };
 
 export default function RootLayout({

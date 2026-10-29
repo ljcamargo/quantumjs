@@ -135,6 +135,31 @@ intermediate results. Move the mouse away to return to the final distribution.
 This feature is automatically disabled for large circuits (>8 qubits or >30
 moments) to keep the simulation responsive.
 
+## On Phones and Tablets
+
+Below 1024 px wide, the Bench switches from the desktop console to a vertical
+stack of collapsible panels. The editor and the circuit diagram are open by
+default, with the QASM panel placed above the circuit in the stack; the
+Probabilities panel starts collapsed.
+
+- Tap a panel header to expand or collapse it.
+- At most two panels are open at once. Opening a third collapses the one you
+  opened least recently.
+- Use the focus (maximize) icon in a panel header to give that panel the full
+  height; press it again to return to the editor + circuit pair.
+- Your open/closed layout is remembered across reloads.
+- The **Samples** button opens the explorer as a full-screen sheet.
+- The mobile header shows the Bench mark and label; Samples and Run become
+  icon-only controls to keep it compact.
+- The gear menu contains **Autorun**, **Docs**, and **GitHub**. WebMCP is
+  desktop-only and is hidden on mobile.
+- Hover interactions (gate → QASM line highlighting and moment previews) are
+  pointer-only and are disabled on touch screens.
+- The circuit diagram uses **fit width** on mobile: wide circuits scroll
+  vertically instead of shrinking to unreadable sizes.
+
+Each expanded panel scrolls on its own; the page itself does not scroll.
+
 ## Default Sample
 
 When you first open the Bench, it loads a staircase comparison sample that demonstrates all four scoped layout loops side by side:

@@ -1,5 +1,61 @@
 # Bench Changelog
 
+## 0.10.0 — 2026-10-29
+
+### Added
+
+#### Responsive mobile layout
+
+The Bench now works on phones and tablets without changing the desktop console.
+
+- **Breakpoint at 1024 px (`lg`)** — below it the Bench switches to a vertical
+  stack; at and above it the original 40/60 desktop grid is preserved.
+- **Collapsible panel stack** — Editor, QASM, Circuit Visualizer, and
+  Probabilities become header-only bars when collapsed. At most two panels are
+  open at once; opening a third collapses the least recent one. Editor +
+  Circuit are open by default, and the state persists across reloads.
+- **Focus button** in each panel header expands that panel to the full stack
+  height; pressing it again restores the default pair.
+- **Compact mobile header** — circularly clipped logo + `Bench` label, icon-only
+  Samples and Run controls without button chrome, and a gear menu with
+  Autorun, Docs, and GitHub. WebMCP is hidden on mobile.
+- **Samples as a full-screen sheet** on mobile (desktop still replaces the
+  editor slot).
+- **Single-scroll panels** — each expanded panel owns exactly one scroll
+  region; the page itself never scrolls on mobile.
+- Safe-area (`env(safe-area-inset-bottom)`) and `100dvh` handling for mobile
+  browser chrome.
+
+### Changed
+
+- **Hover interactions are pointer-only.** Gate→QASM line highlighting and the
+  progressive moment preview are disabled on touch devices instead of firing
+  unexpectedly. Moment navigation for touch is planned separately.
+- **Visualizer fit defaults** — desktop keeps “fit both”; mobile defaults to
+  “fit width” so wide circuits stay readable and scroll vertically. Fit/zoom
+  controls are hidden on mobile for now.
+- Panel headers are tappable on mobile with larger (40 px) touch targets;
+  desktop header density is unchanged.
+- **Mobile stack order** is Editor → QASM → Circuit → Results, so QASM sits
+  directly under the source that produced it. Desktop grid placement unchanged.
+- **Mobile header polish** — tighter logo spacing, more room around Samples/Run,
+  and a corrected stacking order so the gear menu draws above the panels.
+- **Mobile editor type** is 14 px; iOS keeps 16 px to avoid Safari's focus
+  auto-zoom.
+- Errors now surface as a red dot on the collapsed Editor header.
+
+### Under the Hood
+
+- `src/hooks/useMobilePanels.ts` — open set, max-2 LRU eviction, focus,
+  localStorage persistence.
+- `src/hooks/useIsDesktop.ts` — hydration-safe media-query hook for behavior
+  that CSS cannot express (hover enablement, mobile fit default).
+- `src/components/HeaderMenu.tsx` — mobile gear menu.
+- `main.bench-main` in `globals.css` switches flex→grid with explicit grid
+  areas; `Panel` gained `id`/`collapsed`/`onToggle`/`onFocus`/`badge` props and
+  no longer scrolls its content wrapper.
+- Removed the old left/right wrapper divs; panels are direct children of main.
+
 ## 0.9.1 — 2026-07-28
 
 ### Fixed

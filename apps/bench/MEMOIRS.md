@@ -17,6 +17,106 @@ Related documents:
 
 ---
 
+## Mobile polish pass
+
+**Date:** 2026-10-29
+**Packages affected:** `apps/bench`
+
+### Changes
+
+- **Header identity & spacing:** kept a `Bench` label next to the mark on mobile
+  (new users had no product name), restored left padding so the left edge
+  balances the right-side controls, and hid the desktop `QuantumJS` title as
+  before.
+- **Logo crop:** the SVG is a white glyph inside a full-bleed circle, so the
+  apparent padding is inside the asset. On mobile the image is scaled 1.35× and
+  clipped to a circular 20px mask: the circle edge stays put while the glyph
+  fills it. Desktop keeps the original 16px, un-scaled mark.
+- **Icon-only mobile controls:** the Samples button drops its background/chrome
+  and shows just the folder icon (cyan when open). Run/Rerun becomes a 36px
+  icon-only control with no background; when autorun is on it uses `RotateCw`
+  (replay semantics) instead of the play triangle. Desktop keeps the bordered
+  buttons and labels unchanged.
+- **Gear menu stacking:** the header is now `relative z-40` on mobile. Its
+  `backdrop-blur` stacking context previously painted below the panel stack, so
+  the dropdown was partially hidden behind panels. The full-screen Explorer
+  sheet stays `z-50` so it still covers the header.
+- **Mobile panel order:** changed to **Editor → QASM → Circuit → Results** so
+  the generated QASM sits directly under the source that produced it, before
+  the circuit diagram. Desktop placement is unchanged (grid areas).
+- **Editor text size:** 14 px on mobile instead of 16 px. iOS Safari auto-zooms
+  focused inputs below 16 px, so an `@supports (-webkit-touch-callout: none)`
+  rule keeps 16 px on iOS only; other mobile browsers and DevTools get 14 px.
+
+---
+
+## Responsive Mobile Shell (CodePen-style panel stack)
+
+**Date:** 2026-10-29
+**Packages affected:** `apps/bench`
+
+### Problem
+
+The Bench was desktop-only: a hard-coded 40/60 flex split with `h-screen` and
+nested scroll containers. On phones every panel was squeezed side by side,
+the header overflowed, and hover-only features were unreachable.
+
+### Decisions
+
+- Breakpoint: **`lg` = `64rem` / 1024 px**. Below it the desktop grid leaves
+  the QASM column under ~360 px, so tablet portrait uses the stack and tablet
+  landscape uses the console.
+- **One DOM, two arrangements.** Panels are direct children of
+  `main.bench-main`, always in mobile order (Editor → QASM → Circuit →
+  Results). `.bench-main` is a flex column by default and a CSS grid at `lg`;
+  grid areas map the same nodes into the console. QuirkVis/editor never mount
+  twice.
+- **Mobile stack:** `useMobilePanels` keeps at most two panels open, evicting
+  the least-recently-expanded when a third opens. Default is Editor + Circuit;
+  state persists in `localStorage` (`bench:mobilePanels:v1`) and is restored
+  after mount to keep SSR/hydration clean. Collapsed panels are header-only;
+  open panels share the remaining height (`flex: 1 1 0%`, `min-height: 0`).
+  A focus button makes one panel solo, and pressing it again restores the
+  default pair.
+- **One scroll region per panel.** `Panel` content is `overflow-hidden`; the
+  panel body owns the only scroller. Root is `.bench-shell` (`100dvh` with a
+  `100vh` fallback) and never scrolls,
+  with `env(safe-area-inset-bottom)`.
+- **Header:** mobile hides the title and WebMCP entirely, keeps icon + Samples
+  + Run, and moves Autorun/Docs/GitHub into a gear menu (`HeaderMenu`). Desktop
+  header untouched.
+- **Explorer:** same `SamplesPanel`; desktop replaces the editor slot, mobile
+  renders it as a full-screen `fixed inset-0` sheet.
+- **Hover is pointer-only.** `useIsDesktop` gates `interactive`/`onHover` on
+  QuirkVis, so touch devices have no hover side effects. Mobile defaults to
+  **fit width** (desktop keeps `fit both`); fit/zoom controls are hidden on
+  mobile for now.
+- Desktop seams were reproduced with a 1 px `gap` + border-tinted background
+  on the grid, because the old layout had wrapper borders in addition to the
+  panel borders.
+
+### Edge cases handled
+
+- Hydration: the media-query hook uses a server snapshot of “desktop”; mobile
+  behavior switches immediately after hydration without a mismatch. Mobile
+  panel state is restored in a task, not synchronously in an effect (lint).
+- `hidden` vs `flex`: Tailwind emits `.hidden` after `.flex`, so the explorer
+  stays `hidden` until `showSamples` removes it. `lg:`/`max-lg:` variants are
+  aligned with the 64rem breakpoint.
+- Tall SVGs: the visualizer scroller uses `m-auto` for centering instead of
+  flex `items-center`, so overflowing content remains reachable from the top.
+- Explorer/mobile overlay keeps the editor mounted underneath, preserving
+  undo/document state while browsing samples.
+
+### Not included (future)
+
+- Moment stepper and tap-to-pin for QASM/moment focusing on touch.
+- Mobile fit/zoom controls.
+- Bloch sphere / agentic / richer file explorer panels. New panels must add a
+  `PanelId`, a grid area, and a single scroll region (see `AGENTS.md`).
+
+---
+
 ## Agent Docs Split & Responsiveness Baseline
 
 **Date:** 2026-10-29
@@ -51,7 +151,8 @@ main: flex
     └── bottom flex-1 → Circuit Visualizer
 ```
 
-Constraints agreed for future mobile work (not yet implemented):
+Constraints agreed for the mobile work (see the responsive shell entry above,
+where they were implemented):
 
 1. One scroll region per panel; never `overflow-auto` inside `overflow-auto`.
 2. No page-level scrolling on mobile; use a `100dvh` shell and let expanded

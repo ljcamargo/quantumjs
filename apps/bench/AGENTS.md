@@ -16,9 +16,11 @@
   → probabilities`, plus a background *moment-by-moment* cache for hover
   previews.
 - No API routes, no server actions, no database. Everything runs in the browser.
-- **The current layout is desktop-only.** `page.tsx` uses hard-coded
-  percentages with no responsive breakpoints. Mobile support is an active,
-  planned workstream — see [Layout & responsive work](#8-layout--responsive-work).
+- **The app is responsive, with one DOM and two CSS arrangements.** At `lg`
+  (`64rem` / 1024 px) it renders the accepted desktop console; below it, a
+  CodePen-style vertical stack of collapsible panels. Desktop is preserved;
+  mobile defaults to **Editor + Circuit**, max two open, persisted in
+  localStorage. See [Layout & responsive architecture](#8-layout--responsive-architecture).
 - The desktop layout is considered **correct and must be preserved** when
   mobile work happens.
 
@@ -122,18 +124,22 @@ apps/bench/
     ├── app/
     │   ├── layout.tsx          ← fonts, metadata, GA scripts, <Providers>
     │   ├── providers.tsx       ← <WebMCPProvider name="quantumjs">
-    │   ├── globals.css         ← Tailwind v4 import, dark scrollbars
-    │   └── page.tsx            ← "use client": layout, state, MCP tools
+    │   ├── globals.css         ← Tailwind v4, scrollbars, `.bench-main` grid,
+    │   │                         `.bench-panel-*`, `.panel-icon-btn`
+    │   └── page.tsx            ← "use client": shell, state, MCP tools
     ├── components/
     │   ├── Panels.tsx          ← Panel shell + Editor/QASM/Results/Samples/Error
     │   ├── VisualizerPanel.tsx ← QuirkVis wrapper, fit/zoom, SVG export, ref API
-    │   ├── WebMCPDialog.tsx    ← tool discovery modal
+    │   ├── HeaderMenu.tsx      ← mobile gear menu (Autorun, Docs, GitHub)
+    │   ├── WebMCPDialog.tsx    ← tool discovery modal (desktop only)
     │   └── icons.tsx           ← GitHubIcon
     ├── hooks/
     │   ├── useSimulator.ts     ← code state, compile, simulate, autorun
     │   ├── useProgressive.ts   ← moment cache + focused moment + displayResults
     │   ├── useQuantumPipeline.ts ← composes simulator + progressive (runWithMoment)
     │   ├── useFileActions.ts   ← copy/download/new callbacks
+    │   ├── useMobilePanels.ts  ← mobile stack open set, max-2 eviction, persistence
+    │   ├── useIsDesktop.ts     ← behavioral media query (hover, mobile fit default)
     │   └── useDocsTools.ts     ← 5 docs-related WebMCP tools
     ├── lib/
     │   ├── qasmLineMap.ts      ← moment/gate → QASM line number map
@@ -149,10 +155,13 @@ apps/bench/
 
 - owns UI-only state: `highlightedLine`, `activeSamplePath`, `showSamples`,
   `showWebMCPDialog`, `webMCPVisible`, `visualizerRef`
+- owns the mobile panel stack via `useMobilePanels()` and passes
+  `collapsed`/`onToggle`/`onFocus` (through `panelChrome(id, extraClass)`)
 - derives `lineMap` from `qasm3` for hover → QASM line highlighting
 - registers Bench WebMCP tools: `compile_simulate_draw`, `list_samples`,
   `open_sample` and calls `useDocsTools()`
-- renders header + the two-column desktop layout
+- renders header + `main.bench-main`, with panels as direct children in
+  **mobile order** (Editor, Circuit, QASM, Results, Explorer)
 - **state stays here**; panels are presentational and receive props
 
 ---
@@ -200,7 +209,9 @@ simulation.** Mixing them up is the most common bug in this app.
 | `momentCache` | `useProgressive` | keyed by the `qasm3` it belongs to |
 | `displayResults` | `useProgressive` | cached moment OR full results |
 | `highlightedLine` | `page.tsx` | derived from visualizer hover via `buildQasmLineMap` |
-| `showSamples`, `activeSamplePath` | `page.tsx` | Samples panel replaces editor (no layout reflow) |
+| `showSamples`, `activeSamplePath` | `page.tsx` | desktop: replaces editor; mobile: full-screen sheet |
+| mobile open set | `useMobilePanels` | max 2, LRU eviction, persisted; ignored on desktop |
+| `isDesktop` | `useIsDesktop` | behavior only: hover on/off, mobile fit default |
 | `fitMode`, `zoom` | `VisualizerPanel` | local controls |
 | `expandedDirs` | `SamplesPanel` | local tree state |
 
@@ -213,90 +224,180 @@ adds `runWithMoment(code, momentum?)` for MCP callers.
 
 `src/components/Panels.tsx`
 
-- **`Panel`** — shared shell: title + icon + optional `headerAction`, content
-  area. Used by every panel. **It currently applies `overflow-auto` to its
-  content wrapper, while several children add their own `overflow-auto`. That
-  is the nested-scroll source to fix during responsive work.**
+- **`Panel`** — shared shell: title + icon + optional `headerAction`/`badge`,
+  plus the mobile collapse API (`id`, `collapsed`, `onToggle`, `onFocus`).
+  Its content wrapper is `overflow-hidden`: **the panel body owns the only
+  scroll region**, never the shell. On desktop `collapsed` is inert — the
+  body uses `hidden lg:flex` so the console always shows every panel.
 - **`EditorPanel`** — `react-simple-code-editor` + Prism JS highlighting.
   Injects a `<style>` block that forces `white-space: pre` and lets the inner
-  editor expand to the longest line (horizontal scroll lives here).
+  editor expand to the longest line (horizontal scroll lives here). Renders
+  `ErrorDisplay` as a footer and shows a red dot in the header on error.
 - **`QasmPanel`** — splits Prism-highlighted HTML per line, wraps each line in
   `[data-line="N"]`, scrolls the highlighted line into view. Do not collapse
   back to one `<pre>` blob; line wrappers are required for highlighting.
 - **`ResultsPanel`** — probability bars; shows `Moment N / M` via `momentLabel`.
 - **`SamplesPanel`** — recursive `TreeNode` explorer + hidden file input for
-  "Open file...". Replaces the editor panel; it is not an overlay.
-- **`ErrorDisplay`** — fixed-height scrollable error strip under the editor.
+  "Open file...". Desktop: replaces the editor slot. Mobile: full-screen
+  `fixed inset-0 z-50` sheet (same mounted component, toggled by CSS).
+- **`ErrorDisplay`** — fixed-height scrollable error strip under the editor
+  (its own region, sibling of the editor scroller — not nested).
 
 `src/components/VisualizerPanel.tsx`
 
 - Wraps `QuirkVis` with `themes.night`, `interactive`, and fit/zoom controls.
+- **Hover is pointer-only:** `interactive`/`onHover` are enabled only when
+  `useIsDesktop()` is true, so touch devices get no hover side effects.
+- Mobile defaults to **fit width** (readable, vertical scroll); desktop keeps
+  **fit both**. A user choice overrides the default. Fit/zoom controls are
+  hidden on mobile for now.
 - Exposes an imperative handle (`getSvgString`, `waitForRender`) so MCP tools
   can return SVG after React commits the new QASM render.
 - Fit modes: `both | width | height | none`; manual zoom shown only for `none`.
 - QuirkVis is CSS-responsive: `fitWidth`/`fitHeight` set `width/height: 100%`
   on the SVG wrapper and rely on `viewBox` + `preserveAspectRatio`, so it does
-  not need a `ResizeObserver`.
+  not need a `ResizeObserver`. The wrapper uses `m-auto` (not flex centering)
+  so tall SVGs remain scrollable from the top.
 
 ---
 
-## 8. Layout & responsive work
+## 8. Layout & responsive architecture
 
-### Current desktop layout (must be preserved)
+### Breakpoint
+
+`lg` = **`64rem` / 1024 px** (Tailwind's `lg`, matched in `globals.css` and
+`useIsDesktop`). Below it the app renders the mobile stack; at and above it the
+desktop console.
+
+Why 1024: the desktop grid gives the editor 40% and Results 16rem. At 768 px
+that leaves QASM ~205 px (and at 800 px ~230 px), which is unusable; at 1024 px
+it gets ~360 px. Result: tablet portrait → mobile stack, tablet landscape →
+console.
+
+### One DOM, two arrangements
+
+`main.bench-main` is a **flex column** by default and a **CSS grid** at `lg`.
+Panels are direct children, always mounted, in mobile order:
 
 ```
-┌─ header h-10 ───────────────────────────────────────────────┐
-├────────────── 40% ──────────────┬──────────── 60% ───────────┤
-│                                │  QASM (flex-1) │ Results   │
-│  Editor  (or Samples Explorer) │                │ w-64      │
-│  + ErrorDisplay                ├────────────────┴───────────┤
-│                                │  Circuit Visualizer        │
-└────────────────────────────────┴────────────────────────────┘
+Editor → QASM → Circuit → Results        (+ Explorer, handled separately)
 ```
 
-- Root: `h-screen overflow-hidden`, `body { overflow: hidden }`.
-- Main: `flex`; left `w-[40%]`; right `flex-1`.
-- Right column: top row `h-[40%]`, bottom `flex-1`.
-- There are **no `sm:`/`md:`/`lg:` layout breakpoints** today (only
-  `hidden sm:inline` on the Samples label).
-- Panels use a 1 px `border-white/5`, background `#111114`, page `#0a0a0c`.
+Grid areas place the same nodes into the desktop console; no component
+(especially the QuirkVis SVG or the editor) is ever mounted twice.
 
-### Agreed constraints for any mobile work
+```css
+/* globals.css, >= 64rem */
+.bench-main {
+  display: grid;
+  gap: 1px;                     /* reproduces the old wrapper-border seams */
+  background-color: rgb(255 255 255 / 0.05);
+  grid-template-columns: 40% minmax(0, 1fr) 16rem;
+  grid-template-rows: 40% minmax(0, 1fr);
+  grid-template-areas:
+    "editor qasm results"
+    "editor circuit circuit";
+}
+.bench-area-editor  { grid-area: editor; }
+.bench-area-qasm    { grid-area: qasm; }
+.bench-area-results { grid-area: results; }
+.bench-area-circuit { grid-area: circuit; }
+```
 
-1. **One scroll region per panel; zero nested scrolls.** No
-   `overflow-auto` wrapping another `overflow-auto`.
-2. **No page-level scroll on mobile.** Use a fixed shell sized with `100dvh`
-   (not `100vh`) minus header; expanded panel bodies absorb the remaining
-   height and are the only scrollers.
-3. **Collapsible/toggleable stacked panels on mobile** (CodePen-style):
-   compact always-visible panel headers; expanded bodies share the remaining
-   height (`flex-1 basis-0 min-h-0`). Code and Circuit are the priority panels.
-4. **Desktop stays pixel-identical.** Prefer CSS-only structure switching
-   (`flex` on mobile → `lg:grid` with explicit areas) over duplicating
-   components, so QuirkVis and the editor are never mounted twice.
-5. **Design for future panels** (richer file explorer, Bloch sphere, agentic
-   panel). New panels must be added as entries in a panel registry/list, not
-   as new hard-coded layout branches.
-6. **Touch parity for hover features.** QASM line highlighting and progressive
-   moments are hover-driven. Mobile needs a tap-to-pin and/or prev/next moment
-   control that writes `setFocusedMoment` directly.
-7. Respect safe areas (`env(safe-area-inset-*)`) and keep touch targets ≥ 40 px
-   on mobile (headers can stay dense on desktop).
+### Mobile stack (below `lg`)
 
-### Known mobile problems to solve
+- `useMobilePanels` owns the open set (`PanelId[]`).
+- **Max 2 open.** Opening a third evicts the least-recently-expanded one.
+- Default: **Editor + Circuit**. Persisted under `bench:mobilePanels:v1`
+  (restored after mount, so SSR/hydration stay clean).
+- Collapsed panel = fixed header bar only (`flex: 0 0 auto`); open panel =
+  `flex: 1 1 0%` with `min-height: 0`, sharing the remaining height.
+- **Focus** button (maximize) makes one panel solo; pressing it again restores
+  the default pair. Useful in landscape.
+- All panels collapsed → “Tap a panel header to open it.” placeholder.
+- Editor is hidden while the Explorer is open. Explorer is a full-screen
+  `fixed inset-0 z-50` sheet on mobile; on desktop it still replaces the editor
+  slot. Same `SamplesPanel` instance, toggled by CSS.
+- Mobile header: circularly clipped logo + `Bench` label, icon-only Samples
+  and Run (no button chrome), gear menu (Autorun, Docs, GitHub). **WebMCP is
+  hidden entirely on mobile.** Desktop header keeps WebMCP, Autorun, Docs,
+  GitHub inline and is visually unchanged.
 
-- `h-screen` + `overflow-hidden` clips content; the 40/60 split stays
-  side-by-side on phones and squeezes all panels.
-- Nested scroll containers (Panel + Editor + QASM/Results/Visualizer +
-  Visualizer's own `overflow-auto`).
-- Header is crowded: logo, Samples, WebMCP, Autorun, Run, Docs, GitHub.
-- Hover-only interactions (QASM line highlight, moment evolution) are
-  unreachable on touch.
-- Visualizer "Fit Both" can shrink wide circuits to unreadable sizes.
-- `WebMCPDialog` uses `90vh` and contains two independent scroll areas.
+### Scroll rule (enforced)
 
-> Any layout change must be proposed and approved first. Do not start
-> restructuring the panels without sign-off.
+- `.bench-main` never scrolls. Root uses `.bench-shell` (`height: 100vh;
+  height: 100dvh;` + `overflow-hidden`); mobile
+  browser chrome is handled by `dvh`, plus `env(safe-area-inset-bottom)`.
+- `Panel` content wrapper is `overflow-hidden`; it is **not** a scroller.
+- Exactly one scroll region per panel body:
+  `EditorPanel → .npm-editor`, `QasmPanel`, `ResultsPanel`,
+  `VisualizerPanel`, `SamplesPanel`.
+- `ErrorDisplay` is a sibling of the editor scroller (its own region), never
+  nested inside it.
+- **Never add an `overflow-auto` around a panel that already scrolls.**
+- Auditing in the browser console:
+
+```js
+[...document.querySelectorAll('*')].filter((el) => {
+  const s = getComputedStyle(el);
+  const scrolls = /auto|scroll/.test(s.overflowY + s.overflowX);
+  return scrolls && (el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1);
+});
+// Each result should be a leaf panel body with no scrolling ancestor.
+```
+
+### Desktop console (must be preserved)
+
+```
+┌─ header h-10 (lg) ─────────────────────────────────────────┐
+├────────── 40% ──────────┬─ qasm (1fr) ─┬─ results 16rem ───┤
+│                         │              │                   │
+│  Editor / Explorer      ├──────────────┴───────────────────┤
+│  + ErrorDisplay         │  Circuit Visualizer (1fr)        │
+└─────────────────────────┴──────────────────────────────────┘
+```
+
+Panels use 1 px `border-white/5`, background `#111114`, page `#0a0a0c`.
+
+### Responsive behavior summary
+
+| Concern | Desktop (`lg+`) | Mobile (`<lg`) |
+|---|---|---|
+| Structure | CSS grid console | flex column stack |
+| Mobile | max 2 open, headers always visible; order Editor → QASM → Circuit → Results |
+| Default open | n/a | Editor + Circuit |
+| Header | logo + title, WebMCP, Autorun, Docs, GitHub | clipped logo + Bench, icon-only Samples/Run, gear menu |
+| Explorer | replaces editor slot | full-screen sheet |
+| Hover (QASM line, moments) | enabled | **disabled** (pointer-only) |
+| Visualizer fit | `both` | `width` |
+| Scrolling | one region per panel | one region per expanded panel; no page scroll |
+
+### Touch / hover status
+
+Hover-driven features are intentionally **disabled on touch**: QuirkVis receives
+`interactive={isDesktop}` and no `onHover`, so no mouse side effects. Moment
+steppers, tap-to-pin, Bloch sphere, agentic panel, etc. are future work and
+must not assume hover.
+
+### Adding a future panel
+
+1. Add its id to `PanelId` + `VALID_PANELS` in `useMobilePanels.ts`.
+2. Mount it as a direct child of `main.bench-main` in the desired mobile order
+   and pass `panelChrome('<id>', 'bench-area-<area>')`.
+3. Add a `.bench-area-<area>` rule and a grid-area to `globals.css` `lg` block
+   (or let it reuse an existing area / tab group).
+4. Ensure exactly one scroll region inside its `Panel` body.
+5. Update this file, `MEMOIRS.md`, and the public Bench docs.
+
+### Rules
+
+1. **Desktop stays pixel-identical** (screenshots at 1024+).
+2. **No nested scrolling**, ever.
+3. **No page-level scroll on mobile.**
+4. **Do not mount panels twice** for the two layouts; use CSS.
+5. New UI must work without hover; hover is an enhancement.
+6. Keep mobile touch targets **≥ 36 px** (panel bars are 40 px; `.panel-icon-btn`
+   is 36 px on mobile, 16 px on desktop).
 
 ---
 
@@ -382,6 +483,9 @@ adds `runWithMoment(code, momentum?)` for MCP callers.
 | Download/copy/new actions | `src/hooks/useFileActions.ts`, `src/lib/download.ts` |
 | Compile/simulate/autorun | `src/hooks/useSimulator.ts`, `src/hooks/useQuantumPipeline.ts` |
 | Header, panel layout, mobile shell | `src/app/page.tsx`, `src/app/globals.css` |
+| Mobile open/closed state, persistence, max-2 | `src/hooks/useMobilePanels.ts` |
+| Mobile header gear menu (Autorun/Docs/GitHub) | `src/components/HeaderMenu.tsx` |
+| Breakpoint / pointer-vs-touch behavior | `src/hooks/useIsDesktop.ts`, `VisualizerPanel.tsx` |
 | WebMCP Bench tools | `src/app/page.tsx` |
 | WebMCP docs tools | `src/hooks/useDocsTools.ts` |
 | WebMCP tool browser modal | `src/components/WebMCPDialog.tsx` |
@@ -408,12 +512,19 @@ Manual checks (dev server):
 - hover a moment → Results shows `Moment N / M`; leaving resumes full results
 - Samples → open each sample; "Open file..." loads a local `.js`
 - copy/download produce `circuit.js`, `circuit.qasm`, `results.csv`, `circuit.svg`
-- Visualizer fit modes + manual zoom
-- WebMCP dialog lists tools when the API is available
+- Visualizer fit modes + manual zoom (desktop)
+- WebMCP dialog lists tools when the API is available (desktop only)
 - **Desktop layout unchanged** at ≥1024 px (compare screenshots)
 - mobile widths 320 / 375 / 390 / 430 px and landscape 844×390:
-  no horizontal body scroll, no nested scroll traps, editor usable with the
-  on-screen keyboard
+  - Editor + Circuit open by default; QASM/Results collapsed
+  - opening a third panel evicts the oldest (max 2)
+  - focus button makes a panel solo; pressing again restores Editor + Circuit
+  - Samples opens a full-screen sheet and closes back to the same stack
+  - gear menu exposes Autorun/Docs/GitHub; WebMCP is absent
+  - no hover highlight fires on tap; visualizer defaults to fit width
+  - no horizontal body scroll, no nested scroll traps, editor usable with the
+    on-screen keyboard
+  - `document.documentElement.scrollHeight <= window.innerHeight`
 
 ---
 

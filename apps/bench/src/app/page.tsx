@@ -1,12 +1,13 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
-import { Play, BookOpen, FolderOpen, Download, Copy, FilePlus } from 'lucide-react';
+import { Play, RotateCw, BookOpen, FolderOpen, Download, Copy, FilePlus } from 'lucide-react';
 
-import { EditorPanel, QasmPanel, ResultsPanel, SamplesPanel, ErrorDisplay } from '../components/Panels';
+import { EditorPanel, QasmPanel, ResultsPanel, SamplesPanel } from '../components/Panels';
 import { VisualizerPanel } from '../components/VisualizerPanel';
 import type { VisualizerPanelHandle } from '../components/VisualizerPanel';
 import { GitHubIcon } from '../components/icons';
+import { HeaderMenu } from '../components/HeaderMenu';
 import type { HoverInfo } from '@ljcamargo/quirkvis-react';
 import { buildQasmLineMap } from '../lib/qasmLineMap';
 import { buildSampleTree } from '../lib/sampleTree';
@@ -15,6 +16,7 @@ import { useFileActions } from '../hooks/useFileActions';
 import sampleEntries, { getSampleCode } from '../sampleRegistry';
 import { useMcpTool, useWebMCPStatus } from 'webmcp-react';
 import { useDocsTools } from '../hooks/useDocsTools';
+import { useMobilePanels, type PanelId } from '../hooks/useMobilePanels';
 import { WebMCPDialog } from '../components/WebMCPDialog';
 
 const sampleTree = buildSampleTree(sampleEntries);
@@ -26,7 +28,7 @@ export default function Playground() {
   const pipeline = useQuantumPipeline(DEFAULT_CODE);
   const {
     code, qasm3, probabilities, error, isRunning, autoRun, setAutoRun, setCode, run,
-    focusedMoment, setFocusedMoment, isCachingMoments, displayResults, momentLabel,
+    setFocusedMoment, isCachingMoments, displayResults, momentLabel,
     runWithMoment,
   } = pipeline;
 
@@ -39,6 +41,17 @@ export default function Playground() {
   const [showSamples, setShowSamples] = useState(false);
   const [showWebMCPDialog, setShowWebMCPDialog] = useState(false);
   const [webMCPVisible, setWebMCPVisible] = useState(false);
+
+  // Mobile panel stack. On desktop the state is inert: `.bench-main` is a grid
+  // and Panel forces every body visible, so the console layout is unchanged.
+  const { openCount, isOpen, toggle, focus } = useMobilePanels();
+  const panelChrome = (id: PanelId, extraClass = '') => ({
+    id,
+    collapsed: !isOpen(id),
+    className: `${isOpen(id) ? 'bench-panel-open' : 'bench-panel-closed'} ${extraClass}`,
+    onToggle: () => toggle(id),
+    onFocus: () => focus(id),
+  });
 
   const visualizerRef = useRef<VisualizerPanelHandle>(null);
 
@@ -220,35 +233,45 @@ export default function Playground() {
   }, [webMcpAvailable]);
 
   return (
-    <div className="flex flex-col h-screen bg-[#0a0a0c] text-slate-200 font-sans overflow-hidden">
+    <div className="bench-shell flex flex-col bg-[#0a0a0c] text-slate-200 font-sans overflow-hidden">
       {/* Header */}
-      <header className="h-10 border-b border-white/5 bg-black/40 backdrop-blur-xl flex items-center justify-between px-4 flex-shrink-0">
-        <div className="flex items-center gap-2">
-          <div className="w-5 h-5 flex items-center justify-center">
-            <img src="/logo.svg" alt="QuantumJS" className="w-4 h-4 object-contain" />
+      <header className="relative z-40 lg:z-auto h-12 lg:h-10 border-b border-white/5 bg-black/40 backdrop-blur-xl flex items-center justify-between gap-2 pl-3 pr-4 lg:px-4 flex-shrink-0">
+        <div className="flex min-w-0 items-center gap-1.5 lg:gap-2">
+          {/* The logo SVG is a glyph inside a full-bleed circle; on mobile the
+           * glyph is scaled up and circularly clipped so the mark reads bigger
+           * without growing the header. Desktop keeps the original sizing. */}
+          <div className="w-5 h-5 lg:w-4 lg:h-4 flex items-center justify-center flex-shrink-0 overflow-hidden rounded-full">
+            <img
+              src="/logo.svg"
+              alt="QuantumJS"
+              className="w-full h-full object-cover scale-[1.35] lg:scale-100"
+            />
           </div>
-          <h1 className="text-sm font-bold tracking-tight text-white flex items-center gap-1.5">
+          <span className="lg:hidden text-sm font-bold tracking-tight text-white">Bench</span>
+          <h1 className="hidden lg:flex text-sm font-bold tracking-tight text-white items-center gap-1.5">
             QuantumJS <span className="text-[8px] bg-white/10 px-1.5 py-0.5 rounded-full uppercase tracking-wider text-slate-400">Bench</span>
           </h1>
           <button
             onClick={() => setShowSamples((v) => !v)}
-            className={`h-6 ml-2 px-2 text-[10px] font-bold rounded transition-all flex items-center gap-1.5 ${
+            aria-label={showSamples ? 'Close samples' : 'Open samples'}
+            aria-expanded={showSamples}
+            className={`h-9 w-9 lg:h-6 lg:w-auto ml-2 lg:ml-2 px-0 lg:px-2 text-[10px] font-bold rounded transition-all flex items-center justify-center gap-1.5 active:scale-95 ${
               showSamples
-                ? 'bg-cyan-600 text-white'
-                : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-200'
+                ? 'text-cyan-400 lg:bg-cyan-600 lg:text-white'
+                : 'text-slate-400 hover:text-slate-200 lg:bg-slate-800 lg:text-slate-400 lg:hover:bg-slate-700'
             }`}
           >
-            <FolderOpen className="w-3 h-3" />
-            <span className="hidden sm:inline">Samples</span>
+            <FolderOpen className="w-3.5 h-3.5 lg:w-3 lg:h-3" />
+            <span className="hidden lg:inline">Samples</span>
           </button>
         </div>
         <div className="flex items-center gap-2">
-          {/* WebMCP Logo */}
+          {/* WebMCP is desktop-only: it is not part of the mobile experience. */}
           {webMcpAvailable &&
             <button
               onClick={() => setShowWebMCPDialog(true)}
               className={`
-                h-5 mx-4 flex gap-0.5 hover:opacity-80 transition-opacity cursor-pointer relative items-center
+                max-lg:hidden h-5 mx-4 flex gap-0.5 hover:opacity-80 transition-opacity cursor-pointer relative items-center
                 ${webMCPVisible ? 'opacity-100 ease-[cubic-bezier(0.15,0.85,0.45,1)]' : 'opacity-0 ease-[cubic-bezier(0.55,0,1,0.45)]'}
                 transition-opacity duration-2500
               `}
@@ -260,8 +283,8 @@ export default function Playground() {
               <img src="/webmcp.svg" alt="QuantumJS" className="w-4 h-4 object-contain" />
             </button>
           }
-          {/* Autorun Toggle */}
-          <label className="flex items-center gap-2 cursor-pointer select-none">
+          {/* Autorun Toggle (desktop; mobile lives in the gear menu) */}
+          <label className="max-lg:hidden flex items-center gap-2 cursor-pointer select-none">
             <input
               type="checkbox"
               checked={autoRun}
@@ -276,17 +299,24 @@ export default function Playground() {
 
           <button
             onClick={run}
-            className="h-7 px-3 bg-cyan-600 hover:bg-cyan-500 text-white text-[10px] font-bold rounded transition-all flex items-center gap-1.5 active:scale-95"
+            aria-label={autoRun ? 'Rerun circuit' : 'Run circuit'}
+            title={autoRun ? 'Rerun circuit' : 'Run circuit'}
+            className="h-9 w-9 lg:h-7 lg:w-auto px-0 lg:px-3 bg-transparent lg:bg-cyan-600 hover:text-cyan-400 lg:hover:bg-cyan-500 lg:hover:text-white text-slate-400 lg:text-white text-[10px] font-bold rounded transition-all flex items-center justify-center gap-1.5 active:scale-95"
           >
-            <Play className="w-3 h-3 fill-current" />
-            {autoRun ? 'RERUN' : 'RUN'}
+            {autoRun ? (
+              <RotateCw className="w-4 h-4 lg:hidden" />
+            ) : (
+              <Play className="w-4 h-4 lg:hidden" />
+            )}
+            <Play className="hidden lg:block w-3 h-3 fill-current" />
+            <span className="hidden lg:inline">{autoRun ? 'RERUN' : 'RUN'}</span>
           </button>
 
           <a
             href="https://quantumjsdocs.netlify.app/"
             target="_blank"
             rel="noopener noreferrer"
-            className="h-7 ml-2 px-3 bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white text-[10px] font-bold rounded transition-all flex items-center gap-1.5"
+            className="hidden lg:flex h-7 ml-2 px-3 bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white text-[10px] font-bold rounded transition-all items-center gap-1.5"
           >
             <BookOpen className="w-3 h-3" />
             Docs
@@ -295,102 +325,113 @@ export default function Playground() {
             href="https://github.com/ljcamargo/quantumjs"
             target="_blank"
             rel="noopener noreferrer"
-            className="h-7 px-3 bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white text-[10px] font-bold rounded transition-all flex items-center gap-1.5"
+            className="hidden lg:flex h-7 px-3 bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white text-[10px] font-bold rounded transition-all items-center gap-1.5"
           >
             <GitHubIcon />
             GitHub
           </a>
+
+          <HeaderMenu autoRun={autoRun} setAutoRun={setAutoRun} />
         </div>
       </header>
 
-      {/* Main Content - Tight grid */}
-      <main className="flex-1 flex overflow-hidden">
-        {/* Left Side: Editor (40%) */}
-        <div className="w-[40%] flex flex-col border-r border-white/5 h-full">
-          <div className="flex-1 overflow-hidden h-full">
-            {showSamples ? (
-              <SamplesPanel
-                tree={sampleTree}
-                activePath={activeSamplePath}
-                onSelect={handleSelectSample}
-                onClose={() => setShowSamples(false)}
-                onFileOpen={handleFileOpen}
-              />
-            ) : (
-              <EditorPanel
-                code={code}
-                setCode={setCode}
-                headerAction={
-                  <div className="flex items-center gap-0.5">
-                    <button onClick={actions.handleNewCode} className="text-slate-500 hover:text-cyan-400 transition-colors p-0.5" title="New file">
-                      <FilePlus size={12} />
-                    </button>
-                    <button onClick={actions.handleCopyCode} className="text-slate-500 hover:text-cyan-400 transition-colors p-0.5" title="Copy code">
-                      <Copy size={12} />
-                    </button>
-                    <button onClick={actions.handleDownloadCode} className="text-slate-500 hover:text-cyan-400 transition-colors p-0.5" title="Download code">
-                      <Download size={12} />
-                    </button>
-                  </div>
-                }
-              />
-            )}
-          </div>
-          <ErrorDisplay error={error} />
-        </div>
-
-        {/* Right Side: Outputs (60%) */}
-        <div className="flex-1 flex flex-col overflow-hidden bg-black/20 h-full">
-          {/* Top Half: QASM & Results */}
-          <div className="flex h-[40%] border-b border-white/5 flex-shrink-0">
-            <div className="flex-1 border-r border-white/5 h-full">
-              <QasmPanel
-                qasm={qasm3}
-                highlightedLine={highlightedLine}
-                headerAction={
-                  <div className="flex items-center gap-0.5">
-                    <button onClick={actions.handleCopyQasm} className="text-slate-500 hover:text-cyan-400 transition-colors p-0.5" title="Copy QASM">
-                      <Copy size={12} />
-                    </button>
-                    <button onClick={actions.handleDownloadQasm} className="text-slate-500 hover:text-cyan-400 transition-colors p-0.5" title="Download QASM">
-                      <Download size={12} />
-                    </button>
-                  </div>
-                }
-              />
+      {/* Main content: mobile vertical panel stack / desktop console grid */}
+      <main className="bench-main flex-1">
+        <EditorPanel
+          {...panelChrome(
+            'editor',
+            `bench-area-editor lg:border-r lg:border-white/5 ${showSamples ? 'hidden' : ''}`
+          )}
+          code={code}
+          setCode={setCode}
+          error={error}
+          headerAction={
+            <div className="flex items-center gap-0.5">
+              <button onClick={actions.handleNewCode} className="panel-icon-btn" title="New file">
+                <FilePlus size={12} />
+              </button>
+              <button onClick={actions.handleCopyCode} className="panel-icon-btn" title="Copy code">
+                <Copy size={12} />
+              </button>
+              <button onClick={actions.handleDownloadCode} className="panel-icon-btn" title="Download code">
+                <Download size={12} />
+              </button>
             </div>
-            <div className="w-64 h-full">
-              <ResultsPanel
-                results={displayResults}
-                isSimulating={isRunning || isCachingMoments}
-                momentLabel={momentLabel}
-                headerAction={
-                  displayResults ? (
-                    <div className="flex items-center gap-0.5">
-                      <button onClick={actions.handleCopyResults} className="text-slate-500 hover:text-cyan-400 transition-colors p-0.5" title="Copy probabilities CSV">
-                        <Copy size={12} />
-                      </button>
-                      <button onClick={actions.handleDownloadResults} className="text-slate-500 hover:text-cyan-400 transition-colors p-0.5" title="Download probabilities CSV">
-                        <Download size={12} />
-                      </button>
-                    </div>
-                  ) : undefined
-                }
-              />
-            </div>
-          </div>
+          }
+        />
 
-          {/* Bottom Half: Visualizer */}
-          <div className="flex-1 overflow-hidden h-full">
-            <VisualizerPanel ref={visualizerRef} qasm={qasm3} onHover={handleHover} />
+        {/* DOM order below is the mobile stack order: Code, QASM, Circuit,
+            Results. The desktop grid places them via grid-area, so both
+            arrangements share one mounted component tree. */}
+        <QasmPanel
+          {...panelChrome('qasm', 'bench-area-qasm lg:border-b lg:border-white/5')}
+          qasm={qasm3}
+          highlightedLine={highlightedLine}
+          headerAction={
+            <div className="flex items-center gap-0.5">
+              <button onClick={actions.handleCopyQasm} className="panel-icon-btn" title="Copy QASM">
+                <Copy size={12} />
+              </button>
+              <button onClick={actions.handleDownloadQasm} className="panel-icon-btn" title="Download QASM">
+                <Download size={12} />
+              </button>
+            </div>
+          }
+        />
+
+        <VisualizerPanel
+          {...panelChrome('circuit', 'bench-area-circuit')}
+          ref={visualizerRef}
+          qasm={qasm3}
+          onHover={handleHover}
+        />
+
+        <ResultsPanel
+          {...panelChrome('results', 'bench-area-results lg:border-b lg:border-white/5')}
+          results={displayResults}
+          isSimulating={isRunning || isCachingMoments}
+          momentLabel={momentLabel}
+          headerAction={
+            displayResults ? (
+              <div className="flex items-center gap-0.5">
+                <button onClick={actions.handleCopyResults} className="panel-icon-btn" title="Copy probabilities CSV">
+                  <Copy size={12} />
+                </button>
+                <button onClick={actions.handleDownloadResults} className="panel-icon-btn" title="Download probabilities CSV">
+                  <Download size={12} />
+                </button>
+              </div>
+            ) : undefined
+          }
+        />
+
+        {!showSamples && openCount === 0 && (
+          <div className="lg:hidden flex flex-1 items-center justify-center px-6 text-center text-[11px] text-slate-600">
+            Tap a panel header to open it.
           </div>
-        </div>
+        )}
+
+        {/* Explorer: desktop replaces the editor slot; mobile is a full-screen
+            sheet over the stack. Same component, no duplicate mounting. */}
+        <SamplesPanel
+          id="explorer"
+          className={`bench-area-editor ${
+            showSamples ? 'max-lg:fixed max-lg:inset-0 max-lg:z-50' : 'hidden'
+          }`}
+          tree={sampleTree}
+          activePath={activeSamplePath}
+          onSelect={handleSelectSample}
+          onClose={() => setShowSamples(false)}
+          onFileOpen={handleFileOpen}
+        />
       </main>
-      {/* WebMCP Dialog */}
-      <WebMCPDialog
-        isOpen={showWebMCPDialog}
-        onClose={() => setShowWebMCPDialog(false)}
-      />
+      {/* WebMCP Dialog (desktop-only; hidden with the trigger on mobile) */}
+      <div className="max-lg:hidden">
+        <WebMCPDialog
+          isOpen={showWebMCPDialog}
+          onClose={() => setShowWebMCPDialog(false)}
+        />
+      </div>
     </div>
   );
 }

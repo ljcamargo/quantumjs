@@ -26,6 +26,110 @@ body {
   margin: 0;
   padding: 0;
   overflow: hidden;
+  overscroll-behavior: none;
+}
+
+/* ─── Bench responsive shell ──────────────────────────────────────────────
+ * Mobile: a vertical stack of collapsible panels inside a fixed-height
+ * shell. Desktop (lg+): the accepted console layout, expressed as a grid so
+ * the panels can stay direct children (one DOM, two arrangements).
+ *
+ * Scroll rule: the shell never scrolls; each expanded panel owns exactly one
+ * scroll region (implemented by the panel bodies, not by Panel).
+ */
+.bench-shell {
+  height: 100vh; /* fallback where dvh is unsupported */
+  height: 100dvh;
+}
+
+.bench-main {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.bench-panel {
+  min-width: 0;
+  min-height: 0;
+}
+
+/* Mobile-only expansion sizing. On desktop these are inert (grid items). */
+@media (width < 64rem) {
+  .bench-panel-open {
+    flex: 1 1 0%;
+  }
+
+  .bench-panel-closed {
+    flex: 0 0 auto;
+  }
+}
+
+/* Shared icon button in panel headers: larger touch target on mobile,
+ * original compact size on desktop. */
+.panel-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.25rem;
+  color: #64748b;
+  transition: color 150ms ease;
+}
+
+.panel-icon-btn:hover {
+  color: #22d3ee;
+}
+
+@media (width >= 64rem) {
+  .bench-main {
+    display: grid;
+    padding-bottom: 0;
+    /* Reproduce the 1px wrapper borders the desktop console had between
+     * panes: each panel already draws its own 1px border, so a 1px gap
+     * tinted like a border keeps the original seam weight. */
+    gap: 1px;
+    background-color: rgb(255 255 255 / 0.05);
+    grid-template-columns: 40% minmax(0, 1fr) 16rem;
+    grid-template-rows: 40% minmax(0, 1fr);
+    grid-template-areas:
+      "editor qasm results"
+      "editor circuit circuit";
+  }
+
+  .bench-area-editor {
+    grid-area: editor;
+  }
+
+  .bench-area-qasm {
+    grid-area: qasm;
+  }
+
+  .bench-area-results {
+    grid-area: results;
+  }
+
+  .bench-area-circuit {
+    grid-area: circuit;
+  }
+
+  .panel-icon-btn {
+    width: 1rem;
+    height: 1rem;
+  }
+}
+
+/* iOS Safari auto-zooms form fields below 16px on focus. Keep 16px there;
+ * every other mobile browser (and DevTools) uses the editor's 14px size. */
+@supports (-webkit-touch-callout: none) {
+  @media (width < 64rem) {
+    .npm-editor textarea,
+    .npm-editor pre {
+      font-size: 16px !important;
+    }
+  }
 }
 
 /* Custom themed scrollbars for dark mode */
@@ -53,5 +157,17 @@ body {
   * {
     scrollbar-width: thin;
     scrollbar-color: #232329 #0d0d10;
+  }
+}
+
+/* Mobile: thinner scrollbars (after the base rules so it wins). */
+@media (width < 64rem) {
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    border-width: 1px;
   }
 }

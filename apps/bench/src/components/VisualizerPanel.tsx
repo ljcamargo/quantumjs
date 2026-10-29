@@ -1,10 +1,11 @@
 import React, { forwardRef, useImperativeHandle, useState, useRef, useCallback, useEffect } from 'react';
-import { Panel } from './Panels';
+import { Panel, type PanelChromeProps } from './Panels';
 import { Cpu, Maximize, ArrowLeftRight, ArrowUpDown, Search, Plus, Minus, Download, Copy } from 'lucide-react';
 import { QuirkVis } from '@ljcamargo/quirkvis-react';
 import type { HoverInfo } from '@ljcamargo/quirkvis-react';
 import { themes } from '@ljcamargo/quirkvis-core';
 import { downloadSvg, copyToClipboard, svgToString } from '../lib/download';
+import { useIsDesktop } from '../hooks/useIsDesktop';
 
 export type VisualizerPanelHandle = {
   /** Returns the currently rendered SVG markup, or null if nothing is rendered yet. */
@@ -22,10 +23,12 @@ export type VisualizerPanelHandle = {
 type VisualizerPanelProps = {
   qasm: string;
   onHover?: (info: HoverInfo) => void;
-};
+} & PanelChromeProps;
+
+type FitMode = 'both' | 'width' | 'height' | 'none';
 
 export const VisualizerPanel = forwardRef<VisualizerPanelHandle, VisualizerPanelProps>(
-  ({ qasm, onHover }, ref) => {
+  ({ qasm, onHover, ...chrome }, ref) => {
     const svgContainerRef = useRef<HTMLDivElement>(null);
     // Waiters keyed by the qasm they're waiting to see rendered.
     const pendingWaiters = useRef<Map<string, Array<(svg: string | null) => void>>>(new Map());
@@ -87,66 +90,78 @@ export const VisualizerPanel = forwardRef<VisualizerPanelHandle, VisualizerPanel
       if (svg) copyToClipboard(svgToString(svg));
     }, [getSvgElement]);
 
-    const [fitMode, setFitMode] = useState<'both' | 'width' | 'height' | 'none'>('both');
+    // Hover is pointer-only. On mobile the interaction is disabled entirely
+    // (QuirkVis then skips its mouse handlers); touch affordances can be added
+    // later without touching the desktop behaviour.
+    const isDesktop = useIsDesktop();
+
+    // Desktop keeps "fit both" as its default. Mobile defaults to "fit width"
+    // so wide circuits stay readable and scroll vertically instead of shrinking
+    // to fit a short panel. A user choice always wins over the default.
+    const [selectedFit, setSelectedFit] = useState<FitMode | null>(null);
+    const fitMode: FitMode = selectedFit ?? (isDesktop ? 'both' : 'width');
     const [zoom, setZoom] = useState(1);
 
     const headerAction = (
       <div className="flex items-center gap-1">
         <button
           onClick={handleCopySvg}
-          className="text-slate-500 hover:text-cyan-400 transition-colors p-0.5"
+          className="panel-icon-btn"
           title="Copy SVG"
         >
           <Copy size={12} />
         </button>
         <button
           onClick={handleDownloadSvg}
-          className="text-slate-500 hover:text-cyan-400 transition-colors p-0.5"
+          className="panel-icon-btn"
           title="Download SVG"
         >
           <Download size={12} />
         </button>
-        <button
-          onClick={() => setFitMode('both')}
-          className={`p-1 rounded transition-colors ${fitMode === 'both' ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-500 hover:text-slate-300'}`}
-          title="Fit Both"
-        >
-          <Maximize size={10} />
-        </button>
-        <button
-          onClick={() => setFitMode('width')}
-          className={`p-1 rounded transition-colors ${fitMode === 'width' ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-500 hover:text-slate-300'}`}
-          title="Fit Width"
-        >
-          <ArrowLeftRight size={10} />
-        </button>
-        <button
-          onClick={() => setFitMode('height')}
-          className={`p-1 rounded transition-colors ${fitMode === 'height' ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-500 hover:text-slate-300'}`}
-          title="Fit Height"
-        >
-          <ArrowUpDown size={10} />
-        </button>
-        <button
-          onClick={() => setFitMode('none')}
-          className={`p-1 rounded transition-colors ${fitMode === 'none' ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-500 hover:text-slate-300'}`}
-          title="Manual Zoom"
-        >
-          <Search size={10} />
-        </button>
-        {fitMode === 'none' && (
-          <div className="flex items-center gap-1 ml-1 border-l border-white/10 pl-1">
-            <button onClick={() => setZoom(z => Math.max(0.1, z - 0.1))} className="text-slate-500 hover:text-slate-300 transition-colors"><Minus size={10} /></button>
-            <span className="text-[8px] font-mono w-8 text-center text-slate-400">{Math.round(zoom * 100)}%</span>
-            <button onClick={() => setZoom(z => z + 0.1)} className="text-slate-500 hover:text-slate-300 transition-colors"><Plus size={10} /></button>
-          </div>
-        )}
+        {/* Fit/zoom controls are desktop-only for now: mobile uses fit-width. */}
+        <div className="hidden items-center gap-1 lg:flex">
+          <button
+            onClick={() => setSelectedFit('both')}
+            className={`p-1 rounded transition-colors ${fitMode === 'both' ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-500 hover:text-slate-300'}`}
+            title="Fit Both"
+          >
+            <Maximize size={10} />
+          </button>
+          <button
+            onClick={() => setSelectedFit('width')}
+            className={`p-1 rounded transition-colors ${fitMode === 'width' ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-500 hover:text-slate-300'}`}
+            title="Fit Width"
+          >
+            <ArrowLeftRight size={10} />
+          </button>
+          <button
+            onClick={() => setSelectedFit('height')}
+            className={`p-1 rounded transition-colors ${fitMode === 'height' ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-500 hover:text-slate-300'}`}
+            title="Fit Height"
+          >
+            <ArrowUpDown size={10} />
+          </button>
+          <button
+            onClick={() => setSelectedFit('none')}
+            className={`p-1 rounded transition-colors ${fitMode === 'none' ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-500 hover:text-slate-300'}`}
+            title="Manual Zoom"
+          >
+            <Search size={10} />
+          </button>
+          {fitMode === 'none' && (
+            <div className="flex items-center gap-1 ml-1 border-l border-white/10 pl-1">
+              <button onClick={() => setZoom(z => Math.max(0.1, z - 0.1))} className="text-slate-500 hover:text-slate-300 transition-colors"><Minus size={10} /></button>
+              <span className="text-[8px] font-mono w-8 text-center text-slate-400">{Math.round(zoom * 100)}%</span>
+              <button onClick={() => setZoom(z => z + 0.1)} className="text-slate-500 hover:text-slate-300 transition-colors"><Plus size={10} /></button>
+            </div>
+          )}
+        </div>
       </div>
     );
 
     return (
-      <Panel title="Circuit Visualizer" icon={<Cpu size={14} />} className="h-full" headerAction={headerAction}>
-        <div ref={svgContainerRef} className="flex-1 flex items-center justify-center bg-black/20 overflow-auto p-4 relative h-full min-h-[150px]">
+      <Panel title="Circuit Visualizer" icon={<Cpu size={14} />} headerAction={headerAction} {...chrome}>
+        <div ref={svgContainerRef} className="relative flex min-h-0 flex-1 overflow-auto bg-black/20 p-4">
           {qasm ? (
             <QuirkVis
               qasm={qasm}
@@ -154,9 +169,13 @@ export const VisualizerPanel = forwardRef<VisualizerPanelHandle, VisualizerPanel
               fitWidth={fitMode === 'both' || fitMode === 'width'}
               fitHeight={fitMode === 'both' || fitMode === 'height'}
               zoom={zoom}
-              interactive={true}
-              onHover={onHover || ((info) => console.log('QirkVis hover:', info))}
-              className={`${fitMode === 'none' ? '' : 'w-full h-full'} flex items-center justify-center`}
+              interactive={isDesktop}
+              onHover={
+                isDesktop
+                  ? onHover || ((info) => console.log('QirkVis hover:', info))
+                  : undefined
+              }
+              className={`${fitMode === 'none' ? '' : 'w-full'} m-auto`}
             />
           ) : (
             <div className="text-slate-700 text-[10px] font-mono">
