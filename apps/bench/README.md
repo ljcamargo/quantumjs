@@ -4,6 +4,11 @@ A real-time, interactive environment to write quantum circuits using the **Quant
 
 This is a Next.js application built with Tailwind CSS, PrismJS syntax highlighting, and `@ljcamargo/quirkvis-react` for instant circuit diagram drawing.
 
+> **Working on the Bench as an AI agent or new contributor?**
+> Start with [`AGENTS.md`](./AGENTS.md) for the directory map, data flow,
+> invariants, and verification checklist. Architecture decisions and edge cases
+> live in [`MEMOIRS.md`](./MEMOIRS.md).
+
 ---
 
 ## Getting Started
