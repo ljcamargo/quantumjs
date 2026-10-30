@@ -39,7 +39,7 @@ export function HeaderMenu({
   }, [open]);
 
   return (
-    <div ref={containerRef} className="relative lg:hidden">
+    <div ref={containerRef} className="relative lg:hidden shrink-0">
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}

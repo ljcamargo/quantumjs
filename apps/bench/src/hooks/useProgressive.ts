@@ -108,11 +108,11 @@ export function useProgressive(
   }, [focusedMoment, momentCache, results, qasm]);
 
   const momentLabel = useMemo(() => {
-    if (focusedMoment == null) return undefined;
+    if (focusedMoment == null || !qasm || momentInfo.momentCount === 0) return undefined;
     return momentInfo.enabled
       ? `Moment ${focusedMoment + 1} / ${momentInfo.momentCount}`
       : undefined;
-  }, [focusedMoment, momentInfo]);
+  }, [focusedMoment, momentInfo, qasm]);
 
   return {
     focusedMoment,

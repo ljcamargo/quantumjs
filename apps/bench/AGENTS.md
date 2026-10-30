@@ -145,7 +145,8 @@ apps/bench/
     │   ├── qasmLineMap.ts      ← moment/gate → QASM line number map
     │   ├── qasmProgressive.ts  ← moment analysis, QASM truncation, cache compute
     │   ├── download.ts         ← Blob download, clipboard, CSV, SVG serialize
-    │   └── sampleTree.ts       ← flat sample paths → nested TreeNode
+    │   ├── sampleTree.ts       ← flat sample paths → nested TreeNode
+    │   └── source.ts           ← New-file template + empty-document guard
     ├── samples/                ← 12 sample circuits (.js, raw-loaded)
     ├── sampleRegistry.ts       ← explicit barrel: path + code (edit to add samples)
     └── types/raw.d.ts          ← note about raw-loader typings
@@ -429,6 +430,11 @@ must not assume hover.
 
 - Executes user code with `new Function('Quantum', code)` → no `import`,
   `require`, or bare `circuit()`; the code must `return` the circuit.
+- **Blank documents are skipped.** `hasExecutableCode()` strips block/line
+  comments; whitespace/comment-only sources clear `qasm3`, `qasm2`,
+  `probabilities`, and `error` without evaluating. This is why a new/cleared
+  editor does not show “must return a circuit”. The New action inserts
+  `NEW_FILE_TEMPLATE` (a valid empty circuit) from `src/lib/source.ts`.
 - Autorun timeout is **1000 ms**; it re-triggers whenever `run` changes, which
   includes `code` changes. Cleanup clears the timer.
 - `runWithCode(code)` sets editor state and returns the full result — used by
@@ -480,6 +486,7 @@ must not assume hover.
 | Probability UI / moment badge | `src/components/Panels.tsx` (`ResultsPanel`), `src/hooks/useProgressive.ts` |
 | Circuit rendering, fit/zoom, SVG export | `src/components/VisualizerPanel.tsx` |
 | Samples list / explorer / open file | `src/sampleRegistry.ts`, `src/lib/sampleTree.ts`, `Panels.tsx` |
+| New-file template / blank-document guard | `src/lib/source.ts`, `src/hooks/useFileActions.ts`, `src/hooks/useSimulator.ts` |
 | Download/copy/new actions | `src/hooks/useFileActions.ts`, `src/lib/download.ts` |
 | Compile/simulate/autorun | `src/hooks/useSimulator.ts`, `src/hooks/useQuantumPipeline.ts` |
 | Header, panel layout, mobile shell | `src/app/page.tsx`, `src/app/globals.css` |
@@ -511,6 +518,10 @@ Manual checks (dev server):
 - hover a gate → QASM line highlights and scrolls into view
 - hover a moment → Results shows `Moment N / M`; leaving resumes full results
 - Samples → open each sample; "Open file..." loads a local `.js`
+- New (header, next to Samples) → loads the valid empty-circuit template, closes
+  the explorer, clears the sample highlight, and produces no error
+- delete the entire editor (or leave only comments) → QASM/probabilities clear
+  and no “must return a circuit” error appears
 - copy/download produce `circuit.js`, `circuit.qasm`, `results.csv`, `circuit.svg`
 - Visualizer fit modes + manual zoom (desktop)
 - WebMCP dialog lists tools when the API is available (desktop only)

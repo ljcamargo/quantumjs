@@ -17,6 +17,43 @@ Related documents:
 
 ---
 
+## New-file Template & Empty-document Guard
+
+**Date:** 2026-10-29
+**Packages affected:** `apps/bench`
+
+### Problem
+
+Pressing **New** cleared the editor. Autorun then evaluated the empty string
+and surfaced “Code must return a Quantum.Circuit object”, even though nothing
+was wrong — the document was simply new/empty.
+
+### Change
+
+- **New inserts a template** (`NEW_FILE_TEMPLATE` in `src/lib/source.ts`):
+  a valid `Quantum.circuit({ qubits: 2, bits: 2 })` scaffold with commented
+example gates and `return c;`. The autorun therefore produces an empty circuit
+  instead of an error.
+- **Blank sources are not evaluated.** `hasExecutableCode()` strips block and
+  line comments, then checks for remaining non-whitespace. If nothing is left,
+  `useSimulator.execute()` clears `qasm3`, `qasm2`, `probabilities`, and
+  `error` and resolves immediately. This also covers a user deleting the
+  template or leaving only comments.
+- **New moved to the header**, next to Samples. New/Open are document lifecycle
+  actions; Copy/Download remain in the editor panel header as content actions.
+  `useFileActions` accepts an optional `onNew` callback so the page can clear
+  `activeSamplePath` (no stale sample highlight after starting a new file).
+
+### Edge cases
+
+- Comment-only documents are treated as empty (no compile, no error).
+- `//` inside a string can be stripped by the heuristic, but any real statement
+  remaining keeps the document executable; nothing valid is skipped.
+- MCP `compile_simulate_draw` with empty code returns empty QASM/probabilities
+  and `error: null` rather than a misleading circuit-return error.
+
+---
+
 ## Mobile polish pass
 
 **Date:** 2026-10-29

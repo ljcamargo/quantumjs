@@ -32,15 +32,21 @@ export default function Playground() {
     runWithMoment,
   } = pipeline;
 
-  // Download / copy / new-file actions
-  const actions = useFileActions(code, qasm3, probabilities, setCode);
-
   // UI state
   const [highlightedLine, setHighlightedLine] = useState<number | null>(null);
   const [activeSamplePath, setActiveSamplePath] = useState('samples/qft_sugar.js');
   const [showSamples, setShowSamples] = useState(false);
   const [showWebMCPDialog, setShowWebMCPDialog] = useState(false);
   const [webMCPVisible, setWebMCPVisible] = useState(false);
+
+  const handleNewDocument = useCallback(() => {
+    setActiveSamplePath('');
+    setShowSamples(false);
+    setFocusedMoment(null);
+    setHighlightedLine(null);
+  }, [setFocusedMoment]);
+  // Download / copy / new-file actions
+  const actions = useFileActions(code, qasm3, probabilities, setCode, handleNewDocument);
 
   // Mobile panel stack. On desktop the state is inert: `.bench-main` is a grid
   // and Panel forces every body visible, so the console layout is unchanged.
@@ -247,7 +253,7 @@ export default function Playground() {
               className="w-full h-full object-cover scale-[1.35] lg:scale-100"
             />
           </div>
-          <span className="lg:hidden text-sm font-bold tracking-tight text-white">QuantumJS</span>
+          <span className="lg:hidden min-w-0 truncate text-sm font-bold tracking-tight text-white">QuantumJS</span>
           <h1 className="hidden lg:flex text-sm font-bold tracking-tight text-white items-center gap-1.5">
             QuantumJS <span className="text-[8px] bg-white/10 px-1.5 py-0.5 rounded-full uppercase tracking-wider text-slate-400">Bench</span>
           </h1>
@@ -255,7 +261,7 @@ export default function Playground() {
             onClick={() => setShowSamples((v) => !v)}
             aria-label={showSamples ? 'Close samples' : 'Open samples'}
             aria-expanded={showSamples}
-            className={`h-9 w-9 lg:h-6 lg:w-auto ml-2 lg:ml-2 px-0 lg:px-2 text-[10px] font-bold rounded transition-all flex items-center justify-center gap-1.5 active:scale-95 ${
+            className={`h-9 w-9 shrink-0 lg:h-6 lg:w-auto ml-2 lg:ml-2 px-0 lg:px-2 text-[10px] font-bold rounded transition-all flex items-center justify-center gap-1.5 active:scale-95 ${
               showSamples
                 ? 'text-cyan-400 lg:bg-cyan-600 lg:text-white'
                 : 'text-slate-400 hover:text-slate-200 lg:bg-slate-800 lg:text-slate-400 lg:hover:bg-slate-700'
@@ -263,6 +269,16 @@ export default function Playground() {
           >
             <FolderOpen className="w-3.5 h-3.5 lg:w-3 lg:h-3" />
             <span className="hidden lg:inline">Samples</span>
+          </button>
+          {/* New is a document action, so it lives with Samples rather than
+              in the editor panel header (which keeps copy/download). */}
+          <button
+            onClick={actions.handleNewCode}
+            aria-label="New file"
+            title="New file"
+            className="h-9 w-9 shrink-0 lg:h-6 lg:w-6 px-0 rounded transition-all flex items-center justify-center text-slate-400 hover:text-slate-200 lg:bg-slate-800 lg:hover:bg-slate-700 active:scale-95 max-lg:-ml-2.5 lg:ml-0"
+          >
+            <FilePlus className="w-3.5 h-3.5 lg:w-3 lg:h-3" />
           </button>
         </div>
         <div className="flex items-center gap-2">
@@ -301,7 +317,7 @@ export default function Playground() {
             onClick={run}
             aria-label={autoRun ? 'Rerun circuit' : 'Run circuit'}
             title={autoRun ? 'Rerun circuit' : 'Run circuit'}
-            className="h-9 w-9 lg:h-7 lg:w-auto px-0 lg:px-3 bg-transparent lg:bg-cyan-600 hover:text-cyan-400 lg:hover:bg-cyan-500 lg:hover:text-white text-slate-400 lg:text-white text-[10px] font-bold rounded transition-all flex items-center justify-center gap-1.5 active:scale-95"
+            className="h-9 w-9 shrink-0 lg:h-7 lg:w-auto px-0 lg:px-3 bg-transparent lg:bg-cyan-600 hover:text-cyan-400 lg:hover:bg-cyan-500 lg:hover:text-white text-slate-400 lg:text-white text-[10px] font-bold rounded transition-all flex items-center justify-center gap-1.5 active:scale-95"
           >
             {autoRun ? (
               <RotateCw className="w-4 h-4 lg:hidden" />
@@ -347,9 +363,6 @@ export default function Playground() {
           error={error}
           headerAction={
             <div className="flex items-center gap-0.5">
-              <button onClick={actions.handleNewCode} className="panel-icon-btn" title="New file">
-                <FilePlus size={12} />
-              </button>
               <button onClick={actions.handleCopyCode} className="panel-icon-btn" title="Copy code">
                 <Copy size={12} />
               </button>

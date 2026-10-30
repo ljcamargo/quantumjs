@@ -19,13 +19,17 @@ It lets you write, visualize, and simulate quantum circuits in real time directl
 ## The Editor
 
 The left panel is the **QuantumJS Editor** — a code editor where you write
-QuantumJS DSL code. Above the editor you'll find three icons:
+QuantumJS DSL code. Above the editor you'll find two icons:
 
 | Icon | Action |
 |------|--------|
-| `FilePlus` | New file — clears the editor to start fresh |
 | `Copy` | Copy source code to clipboard |
 | `Download` | Download source code as `circuit.js` |
+
+The **New file** button (`FilePlus`) lives in the header next to **Samples**,
+since creating and opening documents are file-level actions. New documents start
+from a small valid circuit template, and clearing the editor entirely (or
+leaving only comments) skips compilation instead of reporting an error.
 
 ## Samples Explorer
 

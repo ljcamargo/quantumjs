@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 // @ts-expect-error — quantum-circuit has no type declarations
 import QuantumCircuit from 'quantum-circuit';
 import * as Quantum from '@quantum-js/dsl';
+import { hasExecutableCode } from '../lib/source';
 
 /**
  * Owns the code editor document and the compile+simulate pipeline:
@@ -31,6 +32,24 @@ export function useSimulator(initialCode: string) {
   // Core pipeline: runs for a given source string and resolves with the
   // *complete* result. Doesn't read back from React state anywhere.
   const execute = useCallback((sourceCode: string): Promise<SimRunResult> => {
+    // A new or cleared document has nothing to compile. Reset the output
+    // panels rather than showing "must return a circuit" for effectively
+    // empty input (whitespace or comments only).
+    if (!hasExecutableCode(sourceCode)) {
+      setError(null);
+      setQasm3('');
+      setQasm2('');
+      setProbabilities(null);
+      setIsRunning(false);
+      return Promise.resolve({
+        code: sourceCode,
+        qasm3: '',
+        qasm2: '',
+        probabilities: null,
+        error: null,
+      });
+    }
+
     return new Promise((resolve) => {
       setError(null);
       setIsRunning(true);

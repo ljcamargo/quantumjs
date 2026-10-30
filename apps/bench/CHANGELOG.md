@@ -28,6 +28,10 @@ The Bench now works on phones and tablets without changing the desktop console.
 
 ### Changed
 
+- **The New action moved to the header**, next to Samples. Creating and
+  opening documents are file-level actions; Copy/Download remain in the editor
+  panel header. New files start from a valid empty-circuit template and clear
+  the previously highlighted sample.
 - **Hover interactions are pointer-only.** Gate→QASM line highlighting and the
   progressive moment preview are disabled on touch devices instead of firing
   unexpectedly. Moment navigation for touch is planned separately.
@@ -44,8 +48,19 @@ The Bench now works on phones and tablets without changing the desktop console.
   auto-zoom.
 - Errors now surface as a red dot on the collapsed Editor header.
 
+### Fixed
+
+- **New/empty documents no longer report “Code must return a Quantum.Circuit
+  object”.** New inserts a valid scaffold, and whitespace/comment-only
+  documents (including a fully cleared editor) are skipped by the autorun
+  pipeline, clearing the QASM, probabilities, and error state instead of
+  evaluating nothing.
+
 ### Under the Hood
 
+- `src/lib/source.ts` — `NEW_FILE_TEMPLATE` and `hasExecutableCode()`.
+- `useSimulator.execute()` short-circuits blank documents; `useFileActions()`
+  accepts an `onNew` callback for page-level cleanup.
 - `src/hooks/useMobilePanels.ts` — open set, max-2 LRU eviction, focus,
   localStorage persistence.
 - `src/hooks/useIsDesktop.ts` — hydration-safe media-query hook for behavior
