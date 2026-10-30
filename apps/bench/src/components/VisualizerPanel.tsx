@@ -6,6 +6,7 @@ import type { HoverInfo } from '@ljcamargo/quirkvis-react';
 import { themes } from '@ljcamargo/quirkvis-core';
 import { downloadSvg, copyToClipboard, svgToString } from '../lib/download';
 import { useIsDesktop } from '../hooks/useIsDesktop';
+import { useI18n } from '../i18n';
 
 export type VisualizerPanelHandle = {
   /** Returns the currently rendered SVG markup, or null if nothing is rendered yet. */
@@ -94,6 +95,7 @@ export const VisualizerPanel = forwardRef<VisualizerPanelHandle, VisualizerPanel
     // (QuirkVis then skips its mouse handlers); touch affordances can be added
     // later without touching the desktop behaviour.
     const isDesktop = useIsDesktop();
+    const { t } = useI18n();
 
     // Desktop keeps "fit both" as its default. Mobile defaults to "fit width"
     // so wide circuits stay readable and scroll vertically instead of shrinking
@@ -107,14 +109,14 @@ export const VisualizerPanel = forwardRef<VisualizerPanelHandle, VisualizerPanel
         <button
           onClick={handleCopySvg}
           className="panel-icon-btn"
-          title="Copy SVG"
+          title={t('action.copySvg')}
         >
           <Copy size={12} />
         </button>
         <button
           onClick={handleDownloadSvg}
           className="panel-icon-btn"
-          title="Download SVG"
+          title={t('action.downloadSvg')}
         >
           <Download size={12} />
         </button>
@@ -123,36 +125,36 @@ export const VisualizerPanel = forwardRef<VisualizerPanelHandle, VisualizerPanel
           <button
             onClick={() => setSelectedFit('both')}
             className={`p-1 rounded transition-colors ${fitMode === 'both' ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-500 hover:text-slate-300'}`}
-            title="Fit Both"
+            title={t('visualizer.fitBoth')}
           >
             <Maximize size={10} />
           </button>
           <button
             onClick={() => setSelectedFit('width')}
             className={`p-1 rounded transition-colors ${fitMode === 'width' ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-500 hover:text-slate-300'}`}
-            title="Fit Width"
+            title={t('visualizer.fitWidth')}
           >
             <ArrowLeftRight size={10} />
           </button>
           <button
             onClick={() => setSelectedFit('height')}
             className={`p-1 rounded transition-colors ${fitMode === 'height' ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-500 hover:text-slate-300'}`}
-            title="Fit Height"
+            title={t('visualizer.fitHeight')}
           >
             <ArrowUpDown size={10} />
           </button>
           <button
             onClick={() => setSelectedFit('none')}
             className={`p-1 rounded transition-colors ${fitMode === 'none' ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-500 hover:text-slate-300'}`}
-            title="Manual Zoom"
+            title={t('visualizer.manualZoom')}
           >
             <Search size={10} />
           </button>
           {fitMode === 'none' && (
             <div className="flex items-center gap-1 ml-1 border-l border-white/10 pl-1">
-              <button onClick={() => setZoom(z => Math.max(0.1, z - 0.1))} className="text-slate-500 hover:text-slate-300 transition-colors"><Minus size={10} /></button>
+              <button onClick={() => setZoom(z => Math.max(0.1, z - 0.1))} aria-label={t('visualizer.zoomOut')} title={t('visualizer.zoomOut')} className="text-slate-500 hover:text-slate-300 transition-colors"><Minus size={10} /></button>
               <span className="text-[8px] font-mono w-8 text-center text-slate-400">{Math.round(zoom * 100)}%</span>
-              <button onClick={() => setZoom(z => z + 0.1)} className="text-slate-500 hover:text-slate-300 transition-colors"><Plus size={10} /></button>
+              <button onClick={() => setZoom(z => z + 0.1)} aria-label={t('visualizer.zoomIn')} title={t('visualizer.zoomIn')} className="text-slate-500 hover:text-slate-300 transition-colors"><Plus size={10} /></button>
             </div>
           )}
         </div>
@@ -160,7 +162,7 @@ export const VisualizerPanel = forwardRef<VisualizerPanelHandle, VisualizerPanel
     );
 
     return (
-      <Panel title="Circuit Visualizer" icon={<Cpu size={14} />} headerAction={headerAction} {...chrome}>
+      <Panel title={t('panel.circuit.title')} icon={<Cpu size={14} />} headerAction={headerAction} {...chrome}>
         <div ref={svgContainerRef} className="relative flex min-h-0 flex-1 overflow-auto bg-black/20 p-4">
           {qasm ? (
             <QuirkVis
@@ -179,7 +181,7 @@ export const VisualizerPanel = forwardRef<VisualizerPanelHandle, VisualizerPanel
             />
           ) : (
             <div className="text-slate-700 text-[10px] font-mono">
-              Waiting for QASM...
+              {t('state.waitingQasm')}
             </div>
           )}
         </div>

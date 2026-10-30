@@ -7,6 +7,7 @@ import 'prismjs/components/prism-javascript';
 import 'prismjs/themes/prism-tomorrow.css';
 import { Terminal, Layers, Code, Info, FileCode, FolderOpen, Folder, ChevronRight, ChevronDown, Maximize2 } from 'lucide-react';
 import { useIsDesktop } from '../hooks/useIsDesktop';
+import { useI18n } from '../i18n';
 
 interface PanelProps {
   id: string;
@@ -46,6 +47,7 @@ export const Panel: React.FC<PanelProps> = ({
   // the header must not advertise a toggle (or react to Enter).
   const isDesktop = useIsDesktop();
   const canToggle = !isDesktop && Boolean(onToggle);
+  const { t } = useI18n();
 
   return (
     <div className={`bench-panel flex flex-col bg-[#111114] border border-white/5 shadow-2xl ${className}`}>
@@ -75,8 +77,8 @@ export const Panel: React.FC<PanelProps> = ({
             <button
               type="button"
               onClick={onFocus}
-              aria-label={`Focus ${title} panel`}
-              title="Focus panel"
+              aria-label={t('panel.focus')}
+              title={t('panel.focus')}
               className="panel-icon-btn lg:hidden"
             >
               <Maximize2 size={12} />
@@ -109,10 +111,13 @@ export const EditorPanel = ({
   setCode: (c: string) => void;
   headerAction?: React.ReactNode;
   error?: string | null;
-} & PanelChromeProps) => (
-  <Panel
-    title="QuantumJS Editor"
-    icon={<Code size={14} />}
+} & PanelChromeProps) => {
+  const { t } = useI18n();
+
+  return (
+    <Panel
+      title={t('panel.editor.title')}
+      icon={<Code size={14} />}
     headerAction={headerAction}
     {...chrome}
     badge={
@@ -152,10 +157,12 @@ export const EditorPanel = ({
       />
     </div>
     <ErrorDisplay error={error ?? null} />
-  </Panel>
-);
+    </Panel>
+  );
+};
 
 export const QasmPanel = ({ qasm, highlightedLine, headerAction, ...chrome }: { qasm: string; highlightedLine?: number | null; headerAction?: React.ReactNode } & PanelChromeProps) => {
+  const { t } = useI18n();
   const containerRef = useRef<HTMLDivElement>(null);
 
   const highlightedHtml = useMemo(
@@ -182,11 +189,11 @@ export const QasmPanel = ({ qasm, highlightedLine, headerAction, ...chrome }: { 
   }, [highlightedLine]);
 
   return (
-    <Panel title="Generated QASM 3.0" icon={<Terminal size={14} />} headerAction={headerAction} {...chrome}>
+    <Panel title={t('panel.qasm.title')} icon={<Terminal size={14} />} headerAction={headerAction} {...chrome}>
       <div ref={containerRef} className="min-h-0 flex-1 overflow-auto p-4">
         <pre className="text-[13px] font-mono text-cyan-500/80 whitespace-pre">
           {lines.length === 0 ? (
-            <span className="text-slate-700">Waiting for QASM...</span>
+            <span className="text-slate-700">{t('state.waitingQasm')}</span>
           ) : (
             lines.map((lineHtml: string, i: number) => {
               const lineNum = i + 1;
@@ -212,14 +219,17 @@ export const QasmPanel = ({ qasm, highlightedLine, headerAction, ...chrome }: { 
 };
 
 export const ResultsPanel = ({ results, isSimulating, momentLabel, headerAction, ...chrome }: { results: any, isSimulating: boolean; momentLabel?: string; headerAction?: React.ReactNode } & PanelChromeProps) => {
-  const panelTitle = momentLabel ? `Probabilities — ${momentLabel}` : 'Probabilities';
+  const { t, formatPercent } = useI18n();
+  const panelTitle = momentLabel
+    ? t('panel.results.titleWithMoment', { moment: momentLabel })
+    : t('panel.results.title');
   return (
     <Panel title={panelTitle} icon={<Layers size={14} />} headerAction={headerAction} {...chrome}>
       <div className="min-h-0 flex-1 overflow-auto p-4">
         {isSimulating ? (
           <div className="h-full flex flex-col items-center justify-center text-slate-600 gap-2">
             <div className="w-8 h-8 border-2 border-slate-800 border-t-cyan-500 rounded-full animate-spin" />
-            <p className="text-[10px] font-medium">Simulating...</p>
+            <p className="text-[10px] font-medium">{t('results.simulating')}</p>
           </div>
         ) : results ? (
           <div className="space-y-3">
@@ -227,7 +237,7 @@ export const ResultsPanel = ({ results, isSimulating, momentLabel, headerAction,
               <div key={state} className="space-y-1">
                 <div className="flex justify-between text-[10px] font-mono">
                   <span className="text-cyan-400">|{state}⟩</span>
-                  <span className="text-slate-500">{(prob * 100).toFixed(1)}%</span>
+                  <span className="text-slate-500">{formatPercent(prob)}</span>
                 </div>
                 <div className="h-1.5 w-full bg-black/40 rounded-full overflow-hidden">
                   <div
@@ -240,7 +250,7 @@ export const ResultsPanel = ({ results, isSimulating, momentLabel, headerAction,
           </div>
         ) : (
           <div className="h-full flex items-center justify-center text-slate-700 text-[10px] font-mono text-center">
-            Run to see results
+            {t('results.runToSee')}
           </div>
         )}
       </div>
@@ -343,6 +353,7 @@ export const SamplesPanel = ({
   onClose: () => void;
   onFileOpen?: (code: string, filename: string) => void;
 } & PanelChromeProps) => {
+  const { t } = useI18n();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFilePick = useCallback(() => {
@@ -389,13 +400,14 @@ export const SamplesPanel = ({
 
   return (
     <Panel
-      title="Explorer"
+      title={t('panel.explorer.title')}
       icon={<FolderOpen size={14} />}
       headerAction={
         <button
           onClick={onClose}
           className="panel-icon-btn"
-          title="Close explorer"
+          aria-label={t('panel.explorer.close')}
+          title={t('panel.explorer.close')}
         >
           <span className="text-[10px] font-bold">✕</span>
         </button>
@@ -419,7 +431,7 @@ export const SamplesPanel = ({
           </ul>
         ) : (
           <div className="px-4 py-8 text-center text-slate-600 text-[10px]">
-            No samples found
+            {t('state.noSamples')}
           </div>
         )}
         {/* File input (hidden) */}
@@ -441,7 +453,7 @@ export const SamplesPanel = ({
             }`}
           >
             <FolderOpen size={13} />
-            <span className="text-[10px]">Open file...</span>
+            <span className="text-[10px]">{t('state.openFile')}</span>
           </button>
         </div>
       </div>

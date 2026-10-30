@@ -8,6 +8,8 @@ export type PipelineRunResult = {
   qasm2: string;
   probabilities: Record<string, number> | null;
   error: string | null;
+  /** English error for MCP/agent consumers (UI uses `error`). */
+  errorEn: string | null;
   moment: number | null;
 };
 

@@ -1,5 +1,42 @@
 # Bench Changelog
 
+## 0.11.0 — 2026-10-29
+
+### Added
+
+- **Bench internationalization (English / Spanish).** The UI can be switched
+  from the header (desktop globe menu) or the gear menu on mobile.
+  - **Auto** follows the browser language; explicit **English** or
+    **Español** overrides it.
+  - The preference is remembered in `localStorage` and applied instantly
+    without reloading or losing editor/simulation state.
+  - `<html lang>` is kept in sync.
+  - Probabilities use locale-aware percent formatting (`50,0 %` in Spanish);
+    exported CSV data stays dot-decimal and language-neutral.
+  - Panel titles, controls, tooltips, aria-labels, empty states, moment labels,
+    and Bench-originated errors are translated. Code, samples, QASM, filenames,
+    brand names, and MCP tool descriptions stay English.
+- Spanish terminology: `qubit`, `compuerta`, `reejecutar`, `autoejecutar`,
+  `Visor del circuito` (short form of visualizer).
+- **Header cleanup:** WebMCP is reduced to its status dot + logo, GitHub is
+  icon-only on desktop (label remains in the mobile menu), Spanish Docs is
+  abbreviated to `Docs`, and the right-side header controls now use one uniform
+  gap instead of per-button margins.
+
+### Under the Hood
+
+- `src/i18n/config.ts` — locales, detection, preference storage.
+- `src/i18n/I18nProvider.tsx` — preference/locale state, `t()`, `formatPercent()`.
+- `src/i18n/messages/{en,es}.ts` — typed message dictionaries (key parity
+  enforced by TypeScript).
+- `src/components/LanguageMenu.tsx` — desktop switcher + shared options list;
+  mobile options live in `HeaderMenu`.
+- `useSimulator` keeps the translator in a ref so language changes do not
+  retrigger autorun; `useProgressive` localizes the moment label.
+
+> Docs internationalization (Docusaurus) is intentionally not part of this
+> change.
+
 ## 0.10.0 — 2026-10-29
 
 ### Added

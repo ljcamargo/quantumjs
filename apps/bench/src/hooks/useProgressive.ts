@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { analyzeProgressive, computeProgressiveCache } from '../lib/qasmProgressive';
 import type { ProgressiveAnalysis } from '../lib/qasmProgressive';
+import { useI18n } from '../i18n';
 
 type CacheState = {
   /** The qasm this cache was computed for. */
@@ -49,6 +50,7 @@ export function useProgressive(
   isSimulating: boolean,
   results: Record<string, number> | null,
 ) {
+  const { t } = useI18n();
   const [focusedMoment, setFocusedMoment] = useState<number | null>(null);
   const [momentCache, setMomentCache] = useState<CacheState>({ qasm: '', data: new Map() });
 
@@ -110,9 +112,12 @@ export function useProgressive(
   const momentLabel = useMemo(() => {
     if (focusedMoment == null || !qasm || momentInfo.momentCount === 0) return undefined;
     return momentInfo.enabled
-      ? `Moment ${focusedMoment + 1} / ${momentInfo.momentCount}`
+      ? t('results.moment', {
+          current: focusedMoment + 1,
+          total: momentInfo.momentCount,
+        })
       : undefined;
-  }, [focusedMoment, momentInfo, qasm]);
+  }, [focusedMoment, momentInfo, qasm, t]);
 
   return {
     focusedMoment,

@@ -8,6 +8,8 @@ import { VisualizerPanel } from '../components/VisualizerPanel';
 import type { VisualizerPanelHandle } from '../components/VisualizerPanel';
 import { GitHubIcon } from '../components/icons';
 import { HeaderMenu } from '../components/HeaderMenu';
+import { LanguageMenu } from '../components/LanguageMenu';
+import { useI18n } from '../i18n';
 import type { HoverInfo } from '@ljcamargo/quirkvis-react';
 import { buildQasmLineMap } from '../lib/qasmLineMap';
 import { buildSampleTree } from '../lib/sampleTree';
@@ -33,6 +35,7 @@ export default function Playground() {
   } = pipeline;
 
   // UI state
+  const { t } = useI18n();
   const [highlightedLine, setHighlightedLine] = useState<number | null>(null);
   const [activeSamplePath, setActiveSamplePath] = useState('samples/qft_sugar.js');
   const [showSamples, setShowSamples] = useState(false);
@@ -147,7 +150,7 @@ export default function Playground() {
           qasm: result.qasm2,
           probabilities: result.probabilities,
           moment: result.moment,
-          error: result.error,
+          error: result.errorEn ?? result.error,
           ...(includeSvg ? { svg } : {}),
         },
       };
@@ -241,7 +244,7 @@ export default function Playground() {
   return (
     <div className="bench-shell flex flex-col bg-[#0a0a0c] text-slate-200 font-sans overflow-hidden">
       {/* Header */}
-      <header className="relative z-40 lg:z-auto h-12 lg:h-10 border-b border-white/5 bg-black/40 backdrop-blur-xl flex items-center justify-between gap-2 pl-3 pr-4 lg:px-4 flex-shrink-0">
+      <header className="relative z-40 h-12 lg:h-10 border-b border-white/5 bg-black/40 backdrop-blur-xl flex items-center justify-between gap-2 pl-3 pr-4 lg:px-4 flex-shrink-0">
         <div className="flex min-w-0 items-center gap-1.5 lg:gap-2">
           {/* The logo SVG is a glyph inside a full-bleed circle; on mobile the
            * glyph is scaled up and circularly clipped so the mark reads bigger
@@ -259,7 +262,7 @@ export default function Playground() {
           </h1>
           <button
             onClick={() => setShowSamples((v) => !v)}
-            aria-label={showSamples ? 'Close samples' : 'Open samples'}
+            aria-label={showSamples ? t('header.samples.close') : t('header.samples.open')}
             aria-expanded={showSamples}
             className={`h-9 w-9 shrink-0 lg:h-6 lg:w-auto ml-2 lg:ml-2 px-0 lg:px-2 text-[10px] font-bold rounded transition-all flex items-center justify-center gap-1.5 active:scale-95 ${
               showSamples
@@ -268,39 +271,38 @@ export default function Playground() {
             }`}
           >
             <FolderOpen className="w-3.5 h-3.5 lg:w-3 lg:h-3" />
-            <span className="hidden lg:inline">Samples</span>
+            <span className="hidden lg:inline">{t('header.samples')}</span>
           </button>
           {/* New is a document action, so it lives with Samples rather than
               in the editor panel header (which keeps copy/download). */}
           <button
             onClick={actions.handleNewCode}
-            aria-label="New file"
-            title="New file"
+            aria-label={t('header.newFile')}
+            title={t('header.newFile')}
             className="h-9 w-9 shrink-0 lg:h-6 lg:w-6 px-0 rounded transition-all flex items-center justify-center text-slate-400 hover:text-slate-200 lg:bg-slate-800 lg:hover:bg-slate-700 active:scale-95 max-lg:-ml-2.5 lg:ml-0"
           >
             <FilePlus className="w-3.5 h-3.5 lg:w-3 lg:h-3" />
           </button>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           {/* WebMCP is desktop-only: it is not part of the mobile experience. */}
           {webMcpAvailable &&
             <button
               onClick={() => setShowWebMCPDialog(true)}
+              aria-label="WebMCP"
+              title="WebMCP"
               className={`
-                max-lg:hidden h-5 mx-4 flex gap-0.5 hover:opacity-80 transition-opacity cursor-pointer relative items-center
+                max-lg:hidden shrink-0 h-5 flex gap-1 hover:opacity-80 transition-opacity cursor-pointer relative items-center
                 ${webMCPVisible ? 'opacity-100 ease-[cubic-bezier(0.15,0.85,0.45,1)]' : 'opacity-0 ease-[cubic-bezier(0.55,0,1,0.45)]'}
                 transition-opacity duration-2500
               `}
             >
-              <span className="w-1.5 h-1.5 rounded-full bg-green-400 mr-1.5" />
-              <span className="text-xs tracking-tight text-white flex items-center gap-1.5">
-                WebMCP
-              </span>
-              <img src="/webmcp.svg" alt="QuantumJS" className="w-4 h-4 object-contain" />
+              <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
+              <img src="/webmcp.svg" alt="WebMCP" className="w-4 h-4 object-contain" />
             </button>
           }
           {/* Autorun Toggle (desktop; mobile lives in the gear menu) */}
-          <label className="max-lg:hidden flex items-center gap-2 cursor-pointer select-none">
+          <label className="max-lg:hidden shrink-0 flex items-center gap-2 cursor-pointer select-none">
             <input
               type="checkbox"
               checked={autoRun}
@@ -309,14 +311,14 @@ export default function Playground() {
             />
             <div className="w-7 h-4 bg-slate-800 rounded-full peer peer-focus:ring-1 peer-focus:ring-cyan-500/30 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-slate-400 peer-checked:after:bg-cyan-400 after:rounded-full after:h-3 after:w-3 after:transition-all relative peer-checked:bg-cyan-950 border border-slate-700 peer-checked:border-cyan-700/50"></div>
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider peer-checked:text-cyan-400">
-              Autorun
+              {t('header.autorun')}
             </span>
           </label>
 
           <button
             onClick={run}
-            aria-label={autoRun ? 'Rerun circuit' : 'Run circuit'}
-            title={autoRun ? 'Rerun circuit' : 'Run circuit'}
+            aria-label={autoRun ? t('header.rerunAria') : t('header.runAria')}
+            title={autoRun ? t('header.rerunAria') : t('header.runAria')}
             className="h-9 w-9 shrink-0 lg:h-7 lg:w-auto px-0 lg:px-3 bg-transparent lg:bg-cyan-600 hover:text-cyan-400 lg:hover:bg-cyan-500 lg:hover:text-white text-slate-400 lg:text-white text-[10px] font-bold rounded transition-all flex items-center justify-center gap-1.5 active:scale-95"
           >
             {autoRun ? (
@@ -325,27 +327,30 @@ export default function Playground() {
               <Play className="w-4 h-4 lg:hidden" />
             )}
             <Play className="hidden lg:block w-3 h-3 fill-current" />
-            <span className="hidden lg:inline">{autoRun ? 'RERUN' : 'RUN'}</span>
+            <span className="hidden lg:inline">{autoRun ? t('header.rerun') : t('header.run')}</span>
           </button>
 
           <a
             href="https://quantumjsdocs.netlify.app/"
             target="_blank"
             rel="noopener noreferrer"
-            className="hidden lg:flex h-7 ml-2 px-3 bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white text-[10px] font-bold rounded transition-all items-center gap-1.5"
+            className="hidden lg:flex shrink-0 h-7 px-3 bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white text-[10px] font-bold rounded transition-all items-center gap-1.5"
           >
             <BookOpen className="w-3 h-3" />
-            Docs
+            {t('header.docs')}
           </a>
           <a
             href="https://github.com/ljcamargo/quantumjs"
             target="_blank"
             rel="noopener noreferrer"
-            className="hidden lg:flex h-7 px-3 bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white text-[10px] font-bold rounded transition-all items-center gap-1.5"
+            aria-label={t('header.github')}
+            title={t('header.github')}
+            className="hidden lg:flex shrink-0 h-7 w-7 px-0 bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white rounded transition-all items-center justify-center"
           >
             <GitHubIcon />
-            GitHub
           </a>
+
+          <LanguageMenu />
 
           <HeaderMenu autoRun={autoRun} setAutoRun={setAutoRun} />
         </div>
@@ -363,10 +368,10 @@ export default function Playground() {
           error={error}
           headerAction={
             <div className="flex items-center gap-0.5">
-              <button onClick={actions.handleCopyCode} className="panel-icon-btn" title="Copy code">
+              <button onClick={actions.handleCopyCode} className="panel-icon-btn" title={t('action.copyCode')}>
                 <Copy size={12} />
               </button>
-              <button onClick={actions.handleDownloadCode} className="panel-icon-btn" title="Download code">
+              <button onClick={actions.handleDownloadCode} className="panel-icon-btn" title={t('action.downloadCode')}>
                 <Download size={12} />
               </button>
             </div>
@@ -382,10 +387,10 @@ export default function Playground() {
           highlightedLine={highlightedLine}
           headerAction={
             <div className="flex items-center gap-0.5">
-              <button onClick={actions.handleCopyQasm} className="panel-icon-btn" title="Copy QASM">
+              <button onClick={actions.handleCopyQasm} className="panel-icon-btn" title={t('action.copyQasm')}>
                 <Copy size={12} />
               </button>
-              <button onClick={actions.handleDownloadQasm} className="panel-icon-btn" title="Download QASM">
+              <button onClick={actions.handleDownloadQasm} className="panel-icon-btn" title={t('action.downloadQasm')}>
                 <Download size={12} />
               </button>
             </div>
@@ -407,10 +412,10 @@ export default function Playground() {
           headerAction={
             displayResults ? (
               <div className="flex items-center gap-0.5">
-                <button onClick={actions.handleCopyResults} className="panel-icon-btn" title="Copy probabilities CSV">
+                <button onClick={actions.handleCopyResults} className="panel-icon-btn" title={t('action.copyResults')}>
                   <Copy size={12} />
                 </button>
-                <button onClick={actions.handleDownloadResults} className="panel-icon-btn" title="Download probabilities CSV">
+                <button onClick={actions.handleDownloadResults} className="panel-icon-btn" title={t('action.downloadResults')}>
                   <Download size={12} />
                 </button>
               </div>
@@ -420,7 +425,7 @@ export default function Playground() {
 
         {!showSamples && openCount === 0 && (
           <div className="lg:hidden flex flex-1 items-center justify-center px-6 text-center text-[11px] text-slate-600">
-            Tap a panel header to open it.
+            {t('state.tapPanel')}
           </div>
         )}
 

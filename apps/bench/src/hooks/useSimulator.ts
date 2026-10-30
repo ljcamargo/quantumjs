@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 // @ts-expect-error — quantum-circuit has no type declarations
 import QuantumCircuit from 'quantum-circuit';
 import * as Quantum from '@quantum-js/dsl';
 import { hasExecutableCode } from '../lib/source';
+import { useI18n } from '../i18n';
+import { en } from '../i18n/messages/en';
 
 /**
  * Owns the code editor document and the compile+simulate pipeline:
@@ -17,10 +19,21 @@ export type SimRunResult = {
   qasm3: string;
   qasm2: string;
   probabilities: Record<string, number> | null;
+  /** Localized message shown in the UI. */
   error: string | null;
+  /** Stable English message for MCP/agent consumers. */
+  errorEn: string | null;
 };
 
 export function useSimulator(initialCode: string) {
+  const { t } = useI18n();
+  // Keep the latest translator available to `execute` without making the
+  // callback (and therefore autorun) change when the language switches.
+  const tRef = useRef(t);
+  useEffect(() => {
+    tRef.current = t;
+  }, [t]);
+
   const [code, setCode] = useState(initialCode);
   const [qasm3, setQasm3] = useState('');
   const [qasm2, setQasm2] = useState('');
@@ -47,6 +60,7 @@ export function useSimulator(initialCode: string) {
         qasm2: '',
         probabilities: null,
         error: null,
+        errorEn: null,
       });
     }
 
@@ -66,7 +80,17 @@ export function useSimulator(initialCode: string) {
         const fn = new Function('Quantum', sourceCode);
         const circuitObj = fn(Quantum);
         if (!circuitObj || typeof circuitObj.compile !== 'function') {
-          throw new Error("Code must return a Quantum.Circuit object (e.g., 'return c;')");
+          const msg = tRef.current('error.mustReturnCircuit');
+          setError(msg);
+          finish({
+            code: sourceCode,
+            qasm3: compiledQasm3,
+            qasm2: compiledQasm2,
+            probabilities: null,
+            error: msg,
+            errorEn: en['error.mustReturnCircuit'],
+          });
+          return;
         }
 
         compiledQasm3 = circuitObj.compile({ version: '3.0' });
@@ -80,20 +104,41 @@ export function useSimulator(initialCode: string) {
             const detail = Array.isArray(err)
               ? err.map((e) => `Line ${e.line}: ${e.msg}`).join('\n')
               : err;
-            const msg = `Simulation Error:\n${detail}`;
+            const msg = `${tRef.current('error.simulation')}\n${detail}`;
             setError(msg);
-            finish({ code: sourceCode, qasm3: compiledQasm3, qasm2: compiledQasm2, probabilities: null, error: msg });
+            finish({
+              code: sourceCode,
+              qasm3: compiledQasm3,
+              qasm2: compiledQasm2,
+              probabilities: null,
+              error: msg,
+              errorEn: `${en['error.simulation']}\n${detail}`,
+            });
             return;
           }
           qc.run();
           const probs = qc.probabilities();
           setProbabilities(probs);
-          finish({ code: sourceCode, qasm3: compiledQasm3, qasm2: compiledQasm2, probabilities: probs, error: null });
+          finish({
+            code: sourceCode,
+            qasm3: compiledQasm3,
+            qasm2: compiledQasm2,
+            probabilities: probs,
+            error: null,
+            errorEn: null,
+          });
         });
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : String(e);
         setError(msg);
-        finish({ code: sourceCode, qasm3: compiledQasm3, qasm2: compiledQasm2, probabilities: null, error: msg });
+        finish({
+          code: sourceCode,
+          qasm3: compiledQasm3,
+          qasm2: compiledQasm2,
+          probabilities: null,
+          error: msg,
+          errorEn: msg,
+        });
       }
     });
   }, []);

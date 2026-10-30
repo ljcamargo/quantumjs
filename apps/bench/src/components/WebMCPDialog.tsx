@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, CheckCircle, AlertCircle } from 'lucide-react';
 import { useWebMCPStatus } from 'webmcp-react';
+import { useI18n } from '../i18n';
 
 // Define proper types instead of 'any'
 interface ToolProperty {
@@ -47,21 +48,22 @@ const sortTools = (tools: ToolInfo[]): ToolInfo[] => {
   });
 };
 
-// Example prompts based on your tools
-const EXAMPLE_PROMPTS = [
-  "Compile and simulate a quantum circuit with QFT",
-  "List all available quantum samples",
-  "Open the QFT sample and execute it",
-  "Show me a circuit diagram for the current code",
-  "Create a new document explaining quantum gates",
-  "List my documents and summarize the recent ones"
-];
+// Example prompts based on your tools (keys only; translated in render)
+const EXAMPLE_PROMPT_KEYS = [
+  'webmcp.prompt.qft',
+  'webmcp.prompt.listSamples',
+  'webmcp.prompt.openQft',
+  'webmcp.prompt.diagram',
+  'webmcp.prompt.createDoc',
+  'webmcp.prompt.listDocs',
+] as const;
 
 export function WebMCPDialog({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const { available } = useWebMCPStatus();
+  const { t } = useI18n();
   const [tools, setTools] = useState<ToolInfo[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<'load' | null>(null);
 
   useEffect(() => {
     if (isOpen && available) {
@@ -103,7 +105,7 @@ export function WebMCPDialog({ isOpen, onClose }: { isOpen: boolean; onClose: ()
           }
         } catch (err) {
           console.error('Failed to fetch WebMCP tools:', err);
-          setError('Could not load available tools. The Model Context API may not be available.');
+          setError('load');
           setTools([]);
         } finally {
           setLoading(false);
@@ -130,14 +132,15 @@ export function WebMCPDialog({ isOpen, onClose }: { isOpen: boolean; onClose: ()
           <div>
             <h2 className="text-lg font-bold text-white flex items-center gap-2">
               <img src="/webmcp.svg" alt="QuantumJS" className="w-8 h-8 object-contain" />
-              WebMCP Tools
+              {t('webmcp.title')}
             </h2>
             <p className="text-sm text-slate-400 mt-0.5">
-              Available tools that AI agents can discover and use
+              {t('webmcp.subtitle')}
             </p>
           </div>
           <button
             onClick={onClose}
+            aria-label={t('webmcp.close')}
             className="text-slate-500 hover:text-white transition-colors p-1 rounded hover:bg-white/5"
           >
             <X className="w-5 h-5" />
@@ -149,7 +152,7 @@ export function WebMCPDialog({ isOpen, onClose }: { isOpen: boolean; onClose: ()
           <div className="flex items-center gap-2">
             <div className={`w-2 h-2 rounded-full ${available ? 'bg-green-400' : 'bg-slate-500'}`} />
             <span className="text-sm font-medium text-white">
-              {available ? 'Tools available' : 'No tools available'}
+              {available ? t('webmcp.available') : t('webmcp.unavailable')}
             </span>
           </div>
         </div>
@@ -163,13 +166,13 @@ export function WebMCPDialog({ isOpen, onClose }: { isOpen: boolean; onClose: ()
           ) : error ? (
             <div className="flex items-center gap-3 text-amber-400 bg-amber-950/20 p-4 rounded-lg border border-amber-500/20">
               <AlertCircle className="w-5 h-5 shrink-0" />
-              <p className="text-sm">{error}</p>
+              <p className="text-sm">{t('webmcp.loadError')}</p>
             </div>
           ) : tools.length === 0 ? (
             <div className="text-center text-slate-400 py-12">
-              <p className="text-sm">No tools registered</p>
+              <p className="text-sm">{t('webmcp.noneRegistered')}</p>
               <p className="text-xs mt-2 text-slate-500">
-                Tools will appear here once registered with WebMCP
+                {t('webmcp.noneRegisteredHint')}
               </p>
             </div>
           ) : (
@@ -185,12 +188,12 @@ export function WebMCPDialog({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                       {tool.name}
                     </code>
                     <p className="text-xs text-slate-300 mt-1">
-                      {tool.description || 'No description provided'}
+                      {tool.description || t('webmcp.noDescription')}
                     </p>
                     {tool.inputSchema && (
                       <details className="mt-2 text-xs text-slate-400">
                         <summary className="cursor-pointer hover:text-slate-300">
-                          View schema
+                          {t('webmcp.viewSchema')}
                         </summary>
                         <pre className="mt-1 p-2 bg-black/30 rounded overflow-x-auto text-[10px] text-slate-400 whitespace-pre-wrap break-all">
                           {(() => {
@@ -218,13 +221,15 @@ export function WebMCPDialog({ isOpen, onClose }: { isOpen: boolean; onClose: ()
         {/* Example Prompts */}
         <div className="p-4 border-t border-white/5 shrink-0">
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Try asking</span>
+            <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">{t('webmcp.tryAsking')}</span>
             <div className="flex-1 h-px bg-white/5" />
           </div>
           <div className="flex flex-col gap-1.5 max-h-32 overflow-y-auto">
-            {EXAMPLE_PROMPTS.map((prompt, index) => (
+            {EXAMPLE_PROMPT_KEYS.map((key) => {
+              const prompt = t(key);
+              return (
               <button
-                key={index}
+                key={key}
                 className="text-xs text-left bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white px-3 py-2 rounded-lg transition-colors border border-white/5 hover:border-white/10 w-full"
                 onClick={() => {
                   navigator.clipboard?.writeText(prompt).catch(() => {});
@@ -232,14 +237,15 @@ export function WebMCPDialog({ isOpen, onClose }: { isOpen: boolean; onClose: ()
               >
                   {prompt}
               </button>
-            ))}
+              );
+            })}
           </div>
         </div>
 
         {/* Footer */}
         <div className="p-3 border-t border-white/5 text-center shrink-0">
           <p className="text-xs text-slate-500">
-            Tools operate on this in-browser workspace. No data is synced to servers.
+            {t('webmcp.footer')}
           </p>
         </div>
       </div>

@@ -23,6 +23,9 @@
   localStorage. See [Layout & responsive architecture](#8-layout--responsive-architecture).
 - The desktop layout is considered **correct and must be preserved** when
   mobile work happens.
+- **UI languages:** English + Spanish via a client preference
+  (`auto | en | es`, `localStorage`), with no locale routing. All strings live in
+  `src/i18n/messages/*`; see [Internationalization](#13-internationalization-bench).
 
 ---
 
@@ -130,16 +133,24 @@ apps/bench/
 └── src/
     ├── app/
     │   ├── layout.tsx          ← fonts, metadata, GA scripts, <Providers>
-    │   ├── providers.tsx       ← <WebMCPProvider name="quantumjs">
+    │   ├── providers.tsx       ← <I18nProvider> + <WebMCPProvider>
     │   ├── globals.css         ← Tailwind v4, scrollbars, `.bench-main` grid,
     │   │                         `.bench-panel-*`, `.panel-icon-btn`
     │   └── page.tsx            ← "use client": shell, state, MCP tools
     ├── components/
     │   ├── Panels.tsx          ← Panel shell + Editor/QASM/Results/Samples/Error
     │   ├── VisualizerPanel.tsx ← QuirkVis wrapper, fit/zoom, SVG export, ref API
-    │   ├── HeaderMenu.tsx      ← mobile gear menu (Autorun, Docs, GitHub)
+    │   ├── HeaderMenu.tsx      ← mobile gear menu (Autorun, Language, Docs, GitHub)
+    │   ├── LanguageMenu.tsx    ← desktop language popover + shared LanguageOptions
     │   ├── WebMCPDialog.tsx    ← tool discovery modal (desktop only)
     │   └── icons.tsx           ← GitHubIcon
+    ├── i18n/
+    │   ├── config.ts           ← locales, detection, preference storage key
+    │   ├── I18nProvider.tsx    ← preference state, t(), percent formatting
+    │   ├── index.ts            ← barrel
+    │   └── messages/
+    │       ├── en.ts           ← source of truth for message keys
+    │       └── es.ts           ← typed Record<MessageKey, string>
     ├── hooks/
     │   ├── useSimulator.ts     ← code state, compile, simulate, autorun
     │   ├── useProgressive.ts   ← moment cache + focused moment + displayResults
@@ -498,6 +509,9 @@ must not assume hover.
 | Compile/simulate/autorun | `src/hooks/useSimulator.ts`, `src/hooks/useQuantumPipeline.ts` |
 | Header, panel layout, mobile shell | `src/app/page.tsx`, `src/app/globals.css` |
 | Mobile open/closed state, persistence, max-2 | `src/hooks/useMobilePanels.ts` |
+| UI copy / translations | `src/i18n/messages/en.ts`, `src/i18n/messages/es.ts` |
+| Language detection, preference, formatting | `src/i18n/config.ts`, `src/i18n/I18nProvider.tsx` |
+| Language switcher UI | `src/components/LanguageMenu.tsx`, `src/components/HeaderMenu.tsx` |
 | Mobile header gear menu (Autorun/Docs/GitHub) | `src/components/HeaderMenu.tsx` |
 | Breakpoint / pointer-vs-touch behavior | `src/hooks/useIsDesktop.ts`, `VisualizerPanel.tsx` |
 | WebMCP Bench tools | `src/app/page.tsx` |
@@ -532,6 +546,13 @@ Manual checks (dev server):
 - copy/download produce `circuit.js`, `circuit.qasm`, `results.csv`, `circuit.svg`
 - Visualizer fit modes + manual zoom (desktop)
 - WebMCP dialog lists tools when the API is available (desktop only)
+- language switch (desktop globe / mobile gear): EN ↔ ES updates all UI copy
+  immediately, preserves editor code/results/open panels, updates `<html lang>`,
+  and survives reload via `localStorage`
+- Auto mode follows a Spanish browser language; explicit EN/ES overrides it
+- percentages render with the locale decimal separator (`50,0 %` in Spanish)
+  while `results.csv` stays dot-decimal
+- MCP tool names/descriptions and generated QASM/code stay English/language-neutral
 - **Desktop layout unchanged** at ≥1024 px (compare screenshots)
 - mobile widths 320 / 375 / 390 / 430 px and landscape 844×390:
   - Editor + Circuit open by default; QASM/Results collapsed
@@ -561,3 +582,56 @@ Manual checks (dev server):
 
 Keep this file current: if you add a module, panel, hook, tool, or build
 constraint, update the map and the relevant table here.
+
+---
+
+## 13. Internationalization (Bench)
+
+Scope: **English + Spanish Bench UI**. Docs i18n (Docusaurus) is a separate,
+not-yet-implemented workstream.
+
+- **Model:** client preference `auto | en | es`, persisted at
+  `localStorage["bench:language:v1"]`. `auto` resolves `navigator.languages`
+  (`es-*` → `es`, `en-*` → `en`) with English fallback. Default is `auto`.
+  Selecting a language is instant and must **never reset** editor code,
+  results, or panel state.
+- **Provider:** `I18nProvider` wraps the app in `src/app/providers.tsx`.
+  `useI18n()` returns `{ locale, preference, setPreference, t, formatPercent,
+  supportedLocales, localeLabel }`.
+- **Messages:** `src/i18n/messages/en.ts` is the source of truth for keys;
+  `es.ts` is `Record<MessageKey, string>`, so TypeScript fails the build if a
+  translation is missing. Add English first, then Spanish.
+- **Interpolation/formatting:** `t(key, { current, total })` replaces
+  `{placeholders}`. `formatPercent` uses `Intl.NumberFormat(locale, { style:
+  'percent' })` (Spanish `50,0 %`). CSV export intentionally stays
+  dot-decimal and English-headed.
+- **SSR/`lang`:** the provider sets `document.documentElement.lang` on change.
+  Static HTML/first paint is English; a brief English flicker for auto-detected
+  Spanish is accepted. Path-based locale routing is deliberately avoided so a
+  language switch cannot remount the page and lose editor state.
+- **Switch UI:** desktop `LanguageMenu` (globe, shows current `EN`/`ES`);
+  mobile section inside `HeaderMenu` (Auto / English / Español).
+- **Translate:** UI labels, titles, tooltips, `aria-label`s, placeholders,
+  status/empty states, moment labels, percentages, and Bench-originated errors.
+- **Do not translate:** editor content, samples, the New-file template’s code
+  comments, generated QASM, filenames, CSV headers, brand names (`QuantumJS`,
+  `Bench`, `WebMCP`, `GitHub`, `QASM`, `SVG`, `CSV`), MCP tool names/
+  descriptions/schemas, agent-facing MCP errors, and console logs.
+- **Terms:** `qubit` → `qubit`, `gate` → `compuerta`, `rerun` → `reejecutar`,
+  `autorun` → `autoejecutar`, circuit visualizer → `Visor del circuito`; neutral
+  Spanish, infinitive actions (Ejecutar, Copiar, Descargar, Abrir).
+- **Header actions:** desktop right-side controls share one `gap-2`; do not add
+  per-button margins (`mx-*`/`ml-*`). WebMCP is indicator + logo only, GitHub is
+  icon-only (label lives in the mobile menu), and Docs stays `Docs` in both
+  languages to save space.
+- **Simulator:** `useSimulator` uses a `tRef` so switching language does not
+  change the `execute` callback and therefore does not retrigger autorun. It
+  returns `error` (localized, for the UI) and `errorEn` (stable English, for
+  MCP/agents); `compile_simulate_draw` returns `errorEn`. An error already on
+  screen is not retro-translated until the next run.
+- **Moments:** `useProgressive` builds the localized `Moment N / M` label;
+  `ResultsPanel` renders it and formats percentages.
+- **Future:** docs use Docusaurus native i18n (`en`, `es`, locale dropdown);
+  add more Bench locales in `config.ts` + a new `messages/<locale>.ts`. If SEO
+  or no-flicker SSR becomes required, move to path-based locale routing and
+  persist editor state across navigation.

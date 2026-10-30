@@ -17,6 +17,93 @@ Related documents:
 
 ---
 
+## Bench Internationalization (English / Spanish)
+
+**Date:** 2026-10-29
+**Packages affected:** `apps/bench`
+
+### Problem
+
+The Bench UI was hardcoded in English. We needed a language preference that can
+be selected explicitly, auto-detected from the browser, and remembered — while
+switching language without reloading or losing editor/simulation state.
+
+### Architecture
+
+```
+I18nProvider (client, in src/app/providers.tsx)
+  ├─ preference: 'auto' | 'en' | 'es'   localStorage bench:language:v1
+  ├─ locale: resolved from preference or navigator.languages
+  ├─ t(key, {vars})                     typed flat message keys
+  └─ formatPercent(value)               Intl.NumberFormat(locale)
+        │
+        ├─ page header, panels, visualizer, WebMCP dialog
+        ├─ useSimulator (errors, via tRef)
+        └─ useProgressive (moment label)
+```
+
+- **No URL routing.** The Bench is a single client page; path-based locales
+  would risk remounting on switch and losing editor/run state. Path-style
+  locales are reserved for the Docusaurus docs.
+- `src/i18n/messages/en.ts` is the key source of truth; `es.ts` is typed as
+  `Record<MessageKey, string>`, so missing/extra keys fail TypeScript.
+- Resolution order: explicit preference → `navigator.languages` base match →
+  English. `auto` re-detects on load and listens to `languagechange`.
+- Default preference is `auto`; selecting a language writes it to
+  `localStorage`. Explicit choices win on later visits.
+- `<html lang>` is updated in an effect. Static HTML is English, so an
+  auto-detected Spanish first visit can briefly show English before hydration;
+  accepted for now.
+
+### Decisions
+
+- **In-house, zero-dependency layer** rather than next-intl/i18next: ~60 UI
+  strings, two locales, one client page. Message modules keep a later migration
+  mechanical.
+- **Translate UI chrome only**: labels, titles, aria-labels, empty/status
+  states, moment labels, percentage formatting, and Bench-originated errors.
+  Code, samples, QASM, filenames, CSV headers, brand names, MCP tool
+  names/descriptions/schemas, agent-facing errors, and console logs stay
+  English/language-neutral.
+- **Percentages localized, data not**: `Intl.NumberFormat` produces Spanish
+  `50,0 %`; `resultsToCsv()` keeps dot decimals and `state,probability_pct`.
+- **Terms:** `qubit` stays `qubit`; gate → `compuerta`; rerun → `reejecutar`;
+  autorun → `autoejecutar`; circuit visualizer → `Visor del circuito`; neutral
+  Spanish with infinitive actions.
+- **Header space:** the desktop right-side cluster uses a single `gap-2`; no
+  per-button `mx-*`/`ml-*` margins. WebMCP is indicator + logo only, GitHub is
+  icon-only (label remains in the mobile menu), Docs is `Docs` in both languages.
+- **Switcher placement:** desktop globe popover (`LanguageMenu`), mobile section
+  in the gear menu (`HeaderMenu`). Both share `LanguageOptions`.
+- **Simulator:** `useSimulator` keeps the latest `t` in a ref. If `execute`
+  depended on `t`, every language switch would change the callback and trigger
+  autorun again; the ref avoids recompiling. The result carries both `error`
+  (localized UI) and `errorEn` (English for MCP/agents).
+
+### Edge cases
+
+- Invalid/missing stored preference → fall back to `auto`.
+- `localStorage` unavailable (private mode) → auto-detect still works; the
+  choice is not persisted.
+- The provider applies the restored preference in a 0 ms task, avoiding a
+  hydration mismatch and React's set-state-in-effect lint rule.
+- An error already displayed is not retro-translated when the language changes;
+  it updates on the next run. (Storing error codes would be the upgrade path.)
+- Moment labels rebuild on locale change because `useProgressive` includes `t`
+  in its memo dependencies.
+- `LanguageMenu` forced the header to keep `z-40` on desktop as well, so its
+  popover paints above the panel stack.
+
+### Future
+
+- Docs i18n with Docusaurus native locales (`en`, `es`, navbar locale dropdown,
+  `i18n/es/**`, `write-translations`) — deliberately not included here.
+- More Bench locales: add to `config.ts` and a new `messages/<locale>.ts`.
+- If SEO/no-flicker SSR becomes required, move the Bench to path-based locales
+  and persist editor state across navigation.
+
+---
+
 ## Netlify/Bun Build: `ajv` Resolution in `next.config.ts`
 
 **Date:** 2026-10-29
