@@ -17,6 +17,51 @@ Related documents:
 
 ---
 
+## Netlify/Bun Build: `ajv` Resolution in `next.config.ts`
+
+**Date:** 2026-10-29
+**Packages affected:** `apps/bench`, root `package.json`
+
+### Problem
+
+Netlify (Bun install) failed before compiling:
+
+```
+Error: Cannot find module 'ajv/dist/compile/codegen'
+  ajv-formats/dist/limit.js
+  schema-utils/dist/validate.js
+  terser-webpack-plugin/dist/index.js
+  apps/bench/next.config.compiled.js
+```
+
+`next.config.ts` imported `terser-webpack-plugin` to set
+`keep_classnames`/`keep_fnames` for `quantum-circuit`. That plugin's
+`schema-utils → ajv-formats` requires `ajv@8`, but the monorepo also needs
+`ajv@6` (eslint, `schema-utils@3`, loaders) and Bun hoisted v6 to the repo root.
+Node resolution from the root `ajv-formats` then found v6, which has no
+`dist/compile/codegen`. npm's local install had a nested `ajv@8`; Bun's did not.
+
+### Fix
+
+- Next 16 already supports the same behavior through its built-in minifier:
+  `next build --webpack --no-mangling`. Internally this sets
+  `keep_classnames: true` / `keep_fnames: true`, so `quantum-circuit` keeps the
+  names it needs. The build script now uses it.
+- Removed the custom `TerserPlugin` from `next.config.ts` and the now-unused
+  root `terser-webpack-plugin` devDependency. `next.config.ts` only does Node
+  polyfills + the scoped raw-loader again.
+- Verified the production client chunk still contains `QASMParser`,
+  `QASMLexer`, and `MainprogContext`.
+
+### Gotcha
+
+Do **not** reintroduce a custom terser/minimizer plugin in `next.config.ts`
+without solving ajv hoisting at the workspace level. The supported path is the
+`--no-mangling` flag; it removes the fragile config-time module resolution
+entirely. Any build command change must keep `--webpack --no-mangling`.
+
+---
+
 ## New-file Template & Empty-document Guard
 
 **Date:** 2026-10-29

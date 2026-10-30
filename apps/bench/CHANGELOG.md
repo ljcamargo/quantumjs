@@ -58,6 +58,12 @@ The Bench now works on phones and tablets without changing the desktop console.
 
 ### Under the Hood
 
+- **Build fix (Netlify + Bun):** replaced the custom
+  `terser-webpack-plugin` in `next.config.ts` with Next's
+  `--no-mangling` build flag. The plugin's `schema-utils → ajv-formats` chain
+  resolved the workspace's hoisted `ajv@6` under Bun and broke deployment with
+  `Cannot find module 'ajv/dist/compile/codegen'`. `--no-mangling` keeps
+  class/function names for `quantum-circuit` using Next's own minifier.
 - `src/lib/source.ts` — `NEW_FILE_TEMPLATE` and `hasExecutableCode()`.
 - `useSimulator.execute()` short-circuits blank documents; `useFileActions()`
   accepts an `onNew` callback for page-level cleanup.

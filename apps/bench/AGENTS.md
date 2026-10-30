@@ -53,7 +53,7 @@ Run from the **repo root** unless noted.
 ```bash
 npm install                      # or: bun install (repo uses bun.lockb + Netlify uses bun)
 npm run dev --workspace=bench    # next dev --webpack  (http://localhost:3000)
-npm run build --workspace=bench  # next build --webpack
+npm run build --workspace=bench  # next build --webpack --no-mangling
 npm run lint --workspace=bench   # eslint
 ```
 
@@ -63,6 +63,13 @@ From `apps/bench` the same is `bun dev`, `bun run build`, `bun run lint`.
 simulator needs Node polyfills (`fs`, `path`, `os` fallbacks in
 `next.config.ts`). Do not switch to Turbopack without re-verifying the
 simulator bundle.
+
+`--no-mangling` is also required: it makes Next's built-in minifier keep class
+and function names (`keep_classnames`/`keep_fnames`), which `quantum-circuit`
+needs. **Do not reintroduce `terser-webpack-plugin` in `next.config.ts`.** Under
+the Bun production install its `schema-utils → ajv-formats → ajv` chain resolves
+the repo-root `ajv@6` and Netlify fails with
+`Cannot find module 'ajv/dist/compile/codegen'`. Use the built-in flag instead.
 
 `prebuild` copies `../../agent-skills/quantumjs/SKILL.md` to `public/SKILL.md`.
 **Edit the source skill in `agent-skills/quantumjs/SKILL.md`, never
@@ -115,7 +122,7 @@ apps/bench/
 ├── README.md                  ← human quick start
 ├── CHANGELOG.md               ← user-facing changes
 ├── netlify.toml               ← build from repo root, publish .next
-├── next.config.ts             ← webpack raw-loader + node polyfills + terser
+├── next.config.ts             ← webpack raw-loader + node polyfills
 ├── eslint.config.mjs
 ├── public/
 │   ├── SKILL.md               ← GENERATED from agent-skills/ (prebuild)
