@@ -318,7 +318,7 @@ Grid areas place the same nodes into the desktop console; no component
 - Editor is hidden while the Explorer is open. Explorer is a full-screen
   `fixed inset-0 z-50` sheet on mobile; on desktop it still replaces the editor
   slot. Same `SamplesPanel` instance, toggled by CSS.
-- Mobile header: circularly clipped logo + `Bench` label, icon-only Samples
+- Mobile header: circularly clipped logo + `QuantumJS` brand label, icon-only Samples
   and Run (no button chrome), gear menu (Autorun, Docs, GitHub). **WebMCP is
   hidden entirely on mobile.** Desktop header keeps WebMCP, Autorun, Docs,
   GitHub inline and is visually unchanged.
@@ -366,7 +366,7 @@ Panels use 1 px `border-white/5`, background `#111114`, page `#0a0a0c`.
 | Structure | CSS grid console | flex column stack |
 | Mobile | max 2 open, headers always visible; order Editor → QASM → Circuit → Results |
 | Default open | n/a | Editor + Circuit |
-| Header | logo + title, WebMCP, Autorun, Docs, GitHub | clipped logo + Bench, icon-only Samples/Run, gear menu |
+| Header | logo + title, WebMCP, Autorun, Docs, GitHub | clipped logo + `QuantumJS`, icon-only Samples/Run, gear menu |
 | Explorer | replaces editor slot | full-screen sheet |
 | Hover (QASM line, moments) | enabled | **disabled** (pointer-only) |
 | Visualizer fit | `both` | `width` |

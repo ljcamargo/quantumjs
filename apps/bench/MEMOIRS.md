@@ -24,8 +24,9 @@ Related documents:
 
 ### Changes
 
-- **Header identity & spacing:** kept a `Bench` label next to the mark on mobile
-  (new users had no product name), restored left padding so the left edge
+- **Header identity & spacing:** kept the `QuantumJS` brand label next to the
+  mark on mobile ("Bench" is the surface name, not the brand; desktop still
+  shows `QuantumJS [Bench]`), restored left padding so the left edge
   balances the right-side controls, and hid the desktop `QuantumJS` title as
   before.
 - **Logo crop:** the SVG is a white glyph inside a full-bleed circle, so the

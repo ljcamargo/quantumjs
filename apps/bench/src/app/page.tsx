@@ -247,7 +247,7 @@ export default function Playground() {
               className="w-full h-full object-cover scale-[1.35] lg:scale-100"
             />
           </div>
-          <span className="lg:hidden text-sm font-bold tracking-tight text-white">Bench</span>
+          <span className="lg:hidden text-sm font-bold tracking-tight text-white">QuantumJS</span>
           <h1 className="hidden lg:flex text-sm font-bold tracking-tight text-white items-center gap-1.5">
             QuantumJS <span className="text-[8px] bg-white/10 px-1.5 py-0.5 rounded-full uppercase tracking-wider text-slate-400">Bench</span>
           </h1>

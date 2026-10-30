@@ -16,7 +16,7 @@ The Bench now works on phones and tablets without changing the desktop console.
   Circuit are open by default, and the state persists across reloads.
 - **Focus button** in each panel header expands that panel to the full stack
   height; pressing it again restores the default pair.
-- **Compact mobile header** — circularly clipped logo + `Bench` label, icon-only
+- **Compact mobile header** — circularly clipped logo + `QuantumJS` brand label, icon-only
   Samples and Run controls without button chrome, and a gear menu with
   Autorun, Docs, and GitHub. WebMCP is hidden on mobile.
 - **Samples as a full-screen sheet** on mobile (desktop still replaces the
